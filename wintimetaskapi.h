@@ -1,61 +1,5 @@
 ﻿#ifndef WINTIMETASKAPI_H
 #define WINTIMETASKAPI_H
-/* API接口:通过Qt来添加修改windows的任务计划程序，方便在实际的开发过程中进行调用，
- *          涉及到 创建 修改 删除 禁用
- *          目前Github仍然没有找到相关的开源程序，所以就总结一下，以备后面使用
- *
- *    常规:
- *      1,任务名称，
- *      2,任务描述，
- *      3,任务创建者，
- *      4,任务运行用户组，
- *      5,是否使用最高权限，
- *      6,用户登录运行/不管用户是否登录都要运行 ，是否存储密码(不存储密码，该任务将只有访问本地计算机资源的权限)
- *
- *    触发器(即触发条件可多个):
- *      1,开始任务
- *      2,任务设置: 根据不同的开始任务条件 会触发不同的设置
- *      3,高级设置
- *          3.1 : 任务最多延迟事件(随机延迟)
- *          3.2 : 重复任务间隔
- *          3.3 : 任务的运行时间超过此值则停止执行
- *          3.4 : 到期时间
- *          3.5 : 已启用
- *
- *
- *    操作(触发执行的内容,可多个):
- *      1,操作:启动程序
- *      2,程序或脚本:绝对路径  参数(可选) 起始于(可选)
- *
- *
- *    任务计划任务条件: 指定用于与触发器一起判断是否应运行该任务的条件。如果这里指定的条件不为真，该任务不会运行.
- *      1,仅当计算机空闲时间超过下列值时才启动此任务
- *          1,如果计算机不再空闲，则停止
- *          2,如果空闲状态继续，则重新启动
- *      2,电源：
- *          1,只有在计算机使用交流电源时才启动此任务
- *            1,如果计算机改用电池电源，则停止
- *          2,唤醒计算机运行此任务
- *      3,网络:
- *          1,只有在以下网络连接可用时才启动。
- *
- *
- *     设置: 指定影响任务行为的其它设置
- *          1,允许按需运行任务
- *          2,如果过了计划开始时间,立即启动任务
- *          3,如果任务失败,按以下频率重新启动，-设置尝试重启启动最多次数
- *          4,如果计划任务事件操作以下时间，停止任务(默认为3天 72小时)
- *          5,如果请求后任务还在运行，强行将其停止
- *          6,如果任务没有计划再次运行,则在此之后删除任务
- *          7,如果此任务已经运行，以下规则使用:
- *             1,请勿启动新实例
- *             2,并行运行新实例
- *             3,对新实例排队
- *             4,停止现有实例
- *
- * 联系方式:foryouos@qq.com
- * 微信公众号:瓶子的跋涉
- * */
 
 #include <QWidget>
 #include <QDebug>
@@ -162,44 +106,56 @@ private:
 private:
 
     // 所有参数 设置 常规设置
-    QString m_Task_Name = "TaskAPIName";  //计划任务名称
-    QString m_Task_Desc = "";             // 计划任务的描述信息
-    QString m_Task_Creator = "";          // 计划任务的创建者
+    QString m_Task_Name = "PASS-Name";  //计划任务名称
+    QString m_Task_Desc = "PASS-Desc";             // 计划任务的描述信息
+    QString m_Task_Creator = "PASS-Creator";          // 计划任务的创建者
     //安全选项
-    QString m_Task_Account = "NT AUTHORITY\\SYSTEM";          // 计划任务的用户组
+    // 计划任务的用户组
+    QString m_Task_Account = "NT AUTHORITY\\SYSTEM";
+    // TASK_LOGON_TYPE::TASK_LOGON_SERVICE_ACCOUNT
     TASK_LOGON_TYPE m_LOGON_TYPE = TASK_LOGON_TYPE::TASK_LOGON_SERVICE_ACCOUNT;
-    bool    m_Task_Login_Run = true;      // 是否在用户登录时运行 false将不登录就运行
-    bool    m_Task_Save_Password = false;  // 是否存储密码,不存储密码 该任务将只有访问本地计算机资源的权限
-    TASK_RUNLEVEL_TYPE m_RunLevel_Tyle = TASK_RUNLEVEL_TYPE::TASK_RUNLEVEL_LUA;
-    bool    m_Hide_Task = false;          // 隐藏任务
 
-    // 触发器
+    // 任务权限，常规中是否使用最高权限运行 TASK_RUNLEVEL_TYPE::TASK_RUNLEVEL_LUA 为普通用户
+    TASK_RUNLEVEL_TYPE m_RunLevel_Tyle = TASK_RUNLEVEL_TYPE::TASK_RUNLEVEL_HIGHEST;
+
+    // 常规中是否隐藏在 UI中的显示
+    VARIANT_BOOL m_Hide_UI_Display = VARIANT_TRUE;
+
+    // TODO:触发器
     TASK_TRIGGER_TYPE2 m_TaskTriggerType;
 
-    // 全局任务计划
+    // 全局任务计划 已OK
     QList<TaskOperation> m_globalTaskOperations;
-    // 条件
-    VARIANT_BOOL m_Battery_State = VARIANT_TRUE;
-    VARIANT_BOOL m_DisallowStartIfBattery = VARIANT_FALSE;
-    // 设置 允许按需运行任务
+    // 条件页面的空闲
+    VARIANT_BOOL RunOnlyIfIdle = VARIANT_FALSE;
 
-    // 1,允许按需运行任务
+    // 条件  电源页面功能控制
+    VARIANT_BOOL m_Battery_State = VARIANT_FALSE; // 只有在计算机使用交流电源时才启动此任务
+    VARIANT_BOOL m_DisallowStartIfBattery = VARIANT_FALSE;// 如果计算机改用电池电源，则停止
+    // 唤醒计算机运行此任务
+    // 该值指示任务计划程序将在运行任务时唤醒计算机，并保持计算机处于唤醒状态，直到任务完成
+    VARIANT_BOOL m_Awaken_Alway_Run = VARIANT_FALSE;
+    // TODO:条件 网络 部分
+    // 是否只在 网络 可用时 运行任务
+    VARIANT_BOOL m_RunOnlyIfNetworkAvailable = VARIANT_FALSE;
+    // 1,设置页面 允许按需运行任务
     VARIANT_BOOL m_Run_Tasks_On_Demand = VARIANT_TRUE;
-    // 2. 如果过了计划开始时间,立即启动任务
+    // 2. 设置页面 如果过了计划开始时间,立即启动任务
     VARIANT_BOOL m_Immediate_Start_After_Scheduled_Time = VARIANT_TRUE;
 
     // 3. 如果任务失败,按以下频率重新启动，设置尝试重启次数
-    int m_Restart_Frequency = 10; // 重启频率（单位：分钟）
-    int m_Max_Restart_Attempts = 3; // 最大重启次数
+    QString m_Restart_Frequency = "10"; // 重启频率（单位：分钟）
+    int m_Max_Restart_Attempts =9; // 最大重启次数
 
-    // 4. 如果计划任务事件操作以下时间，停止任务(默认为3天 72小时)
+    // 4.TODO: 仍不完善 如果计划任务事件操作以下时间，停止任务(默认为3天 72小时  PT0S不限制时间)
     QString m_Task_Timeout_Hours = "72"; // 超时时间（小时） 可通过设置 PT0S
 
     // 5. 如果请求后任务还在运行，强行将其停止
     VARIANT_BOOL m_Force_Stop_On_Request = VARIANT_TRUE;
 
     // 6. 如果任务没有计划再次运行，则在此之后删除任务
-    VARIANT_BOOL m_Delete_Task_After_No_Schedule = VARIANT_TRUE;
+    // 获取或设置
+    QString m_Delete_Task_After_No_Schedule = "";
 
     // 7. 如果此任务已经运行，以下规则使用:
     enum class TaskRunningRule {
@@ -210,23 +166,7 @@ private:
     };
 
     TaskRunningRule m_Running_Rule = TaskRunningRule::Do_Not_Start_New_Instance; // 默认
-
-
-
-
-
-
-
 };
 
-inline void WinTimeTaskAPI::AddTaskOperation(const QString &executable, const QString &parameters, const QString &startAt)
-{
-    TaskOperation operation; // 创建一个 TaskOperation 实例
-    operation.executable = executable; // 设置可执行文件
-    operation.parameters = parameters;   // 设置参数
-    operation.startAtDirector = startAt;         // 设置起始时间
 
-    // 将操作添加到全局任务计划
-    m_globalTaskOperations.append(operation);
-}
 #endif // WINTIMETASKAPI_H

@@ -7,8 +7,8 @@ WinTimeTaskAPI::WinTimeTaskAPI(QWidget *parent)
     : QWidget(parent)
 {
     //添加参数
-    AddTaskOperation("C:\\Path\\To\\YourExecutable.exe", "--option1 --option2", "2024-10-30T10:00:00");
-    AddTaskOperation("C:\\Path\\To\\AnotherExecutable.exe", "--arg1", "2024-10-31T11:00:00");
+    AddTaskOperation("C:\\Path\\To\\YourExecutable.exe", "--hide --argu2", "");
+    AddTaskOperation("C:\\Path\\To\\AnotherExecutable.exe", "--arg1", "");
 
     // 创建任务计划程序 API
     this->Create_Plan_Task_API();
@@ -80,6 +80,7 @@ bool WinTimeTaskAPI::Create_Plan_Task_API()
 bool WinTimeTaskAPI::Create_Plan_Task_API(QString TaskName, QString Task_Path, QString Task_Argu)
 {
 
+    return true;
 }
 bool WinTimeTaskAPI::WinTimeTaskInit()
 {
@@ -120,7 +121,6 @@ bool WinTimeTaskAPI::Create_Plan_Task()
 
 bool WinTimeTaskAPI::Create_Plan_Principal()
 {
-
     // 定义任务所需要的权限      获取任务的 Principal
     m_hr = m_pTask->get_Principal(&m_pPrincipal);
     if (SUCCEEDED(m_hr)) {
@@ -143,13 +143,42 @@ bool WinTimeTaskAPI::Create_Plan_Settings()
     m_hr = m_pTask->get_Settings(&m_pSettings);
     if (SUCCEEDED(m_hr))
     {
-        m_pSettings->put_StartWhenAvailable(VARIANT_TRUE); // 可用时启动
-        m_pSettings->put_AllowDemandStart(VARIANT_TRUE);   // 允许手动启动
+        // 创建并配置空闲设置
+        // IIdleSettings idlesetting;
+        // // 应用空闲设置
+        m_pSettings->put_RunOnlyIfIdle(RunOnlyIfIdle);
+
+        // m_pSettings->put_IdleSettings(idleSettings);
+        m_pSettings->put_StartWhenAvailable(m_Run_Tasks_On_Demand); // 可用时启动
+        m_pSettings->put_AllowDemandStart(m_Immediate_Start_After_Scheduled_Time);   // 允许手动启动
         m_pSettings->put_StopIfGoingOnBatteries(m_Battery_State); // 如果在电池上停止
         m_pSettings->put_DisallowStartIfOnBatteries(m_DisallowStartIfBattery); // 不限制电池下启动
         // 设置最大运行时间，例如 1 小时
-        m_pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT0S")); // 允许手动启动 。 值为 PT0S 将使任务可以无限期运行。
+        // SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Timeout_Hours.utf16()))
+        HRESULT result =  m_pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT0S")); // 允许手动启动 。 值为 PT0S 将使任务可以无限期运行。
+        if (SUCCEEDED(result)) {
+            qDebug()<<"put_ExecutionTimeLimit:"<<"设置成功";
+        } else {
+            // 错误处理.
+            qDebug()<<"put_ExecutionTimeLimit:"<<"设置 失败 Fail";
+        }
         // 设置过期后删除任务的时间（例如 30 天后）
+        m_pSettings->put_Hidden(m_Hide_UI_Display);
+
+        // m_pSettings->put_NetworkSettings(INetworkSettings);
+        // 如果任务没有计划再次运行，则在此之后删除任务
+        m_pSettings->put_DeleteExpiredTaskAfter(SysAllocString(reinterpret_cast<const wchar_t*>(m_Delete_Task_After_No_Schedule.utf16())));
+        // 该值指示任务计划程序将在运行任务时唤醒计算机，并保持计算机处于唤醒状态，直到任务完成
+        m_pSettings->put_WakeToRun(m_Awaken_Alway_Run);
+        // 是否 只在网络 可用时 运行任务
+        m_pSettings->put_RunOnlyIfNetworkAvailable(m_RunOnlyIfNetworkAvailable);
+
+        // 如果任务失败，按如下频率重新启动
+        //m_pSettings->put_RestartInterval(SysAllocString(reinterpret_cast<const wchar_t*>(m_Restart_Frequency.utf16())));
+        // 尝试重新启动最多次数
+        m_pSettings->put_RestartCount(m_Max_Restart_Attempts);
+
+
         m_pSettings->Release();
         return true;
     }
@@ -163,6 +192,7 @@ bool WinTimeTaskAPI::Create_Plan_Register()
     // 设置创建者
     if (SUCCEEDED(m_hr))
     {
+        // 创造计划的用户 和 用户描述
         m_pRegInfo->put_Author(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Creator.utf16())));
         m_pRegInfo->put_Description(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Desc.utf16())));
         // pRegInfo->put_Date();
@@ -186,8 +216,6 @@ bool WinTimeTaskAPI::Create_Plan_Actions()
             m_hr = m_pActionCollection->Create(TASK_ACTION_EXEC, &m_pAction);
             if (SUCCEEDED(m_hr))
             {
-
-
                     // 设置要执行的程序
                     IExecAction* pExecAction = NULL;
                     m_pAction->QueryInterface(IID_IExecAction, (void**)&pExecAction);
@@ -285,6 +313,15 @@ bool WinTimeTaskAPI::Release_WinTask()
     CoUninitialize();
     return true;
 }
+void WinTimeTaskAPI::AddTaskOperation(const QString &executable, const QString &parameters, const QString &startAt)
+{
+    TaskOperation operation; // 创建一个 TaskOperation 实例
+    operation.executable = executable; // 设置可执行文件
+    operation.parameters = parameters;   // 设置参数
+    operation.startAtDirector = startAt;         // 设置起始时间
 
+    // 将操作添加到全局任务计划
+    m_globalTaskOperations.append(operation);
+}
 
 
