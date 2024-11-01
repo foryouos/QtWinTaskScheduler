@@ -6,12 +6,6 @@ using namespace std;
 WinTimeTaskAPI::WinTimeTaskAPI(QWidget *parent)
     : QWidget(parent)
 {
-    //添加参数
-    AddTaskOperation("C:\\Path\\To\\YourExecutable.exe", "--hide --argu2", "");
-    AddTaskOperation("C:\\Path\\To\\AnotherExecutable.exe", "--arg1", "");
-
-    // 创建任务计划程序 API
-    this->Create_Plan_Task_API();
 }
 
 WinTimeTaskAPI::~WinTimeTaskAPI()
@@ -19,69 +13,6 @@ WinTimeTaskAPI::~WinTimeTaskAPI()
 
 }
 
-bool WinTimeTaskAPI::Create_Plan_Task_API()
-{
-    // 1. 任务计划程序初始化
-    if (!this->WinTimeTaskInit()) {
-        qDebug() << "Failed to initialize task scheduler.";
-        return false;
-    }
-
-    // 2. 创建计划任务
-    if (!this->Create_Plan_Task()) {
-        qDebug() << "Failed to create plan task.";
-        return false;
-    }
-
-    // 3. 创建任务所需要的权限
-    if (!this->Create_Plan_Principal()) {
-        qDebug() << "Failed to create plan principal.";
-        return false;
-    }
-
-    // 4. 创建任务的 settings
-    if (!this->Create_Plan_Settings()) {
-        qDebug() << "Failed to create plan settings.";
-        return false;
-    }
-
-    // 5. 设置任务注册信息
-    if (!this->Create_Plan_Register()) {
-        qDebug() << "Failed to create plan register.";
-        return false;
-    }
-
-    // 6. 设置任务的动作
-    if (!this->Create_Plan_Actions()) {
-        qDebug() << "Failed to create plan actions.";
-        return false;
-    }
-
-    // 7. 设置触发器
-    if (!this->Create_Plan_Triggers()) {
-        qDebug() << "Failed to create plan triggers.";
-        return false;
-    }
-
-    // 8. 注册任务最后一步
-    if (!this->Create_Plan_Definition()) {
-        qDebug() << "Failed to create plan definition.";
-        return false;
-    }
-
-    // 9. 释放任务计划程序资源
-    this->Release_WinTask();
-
-    qDebug() << "Task created successfully.";
-    return true;
-
-}
-
-bool WinTimeTaskAPI::Create_Plan_Task_API(QString TaskName, QString Task_Path, QString Task_Argu)
-{
-
-    return true;
-}
 bool WinTimeTaskAPI::WinTimeTaskInit()
 {
     // 初始化COM
@@ -116,19 +47,20 @@ bool WinTimeTaskAPI::Create_Plan_Task()
         m_pService->Release();
         return false;
     }
+    // m_
     return true;
 }
 
-bool WinTimeTaskAPI::Create_Plan_Principal()
+bool WinTimeTaskAPI::Create_Plan_Principal(const Plan_Principal& planprincipal)
 {
     // 定义任务所需要的权限      获取任务的 Principal
     m_hr = m_pTask->get_Principal(&m_pPrincipal);
     if (SUCCEEDED(m_hr)) {
         // 设置 Principal 为系统账户并要求最高权限 m_Task_Account.toStdWString().c_str()
         // m_pPrincipal->put_UserId(_bstr_t(L"NT AUTHORITY\\SYSTEM")); //系统用户
-        m_pPrincipal->put_UserId(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Account.utf16()))); //系统用户
-        m_pPrincipal->put_LogonType(m_LOGON_TYPE);    //
-        m_pPrincipal->put_RunLevel(m_RunLevel_Tyle); // 设置为最高权限
+        m_pPrincipal->put_UserId(SysAllocString(reinterpret_cast<const wchar_t*>(planprincipal.m_Task_Account.utf16()))); //系统用户
+        m_pPrincipal->put_LogonType(planprincipal.m_LOGON_TYPE);    //
+        m_pPrincipal->put_RunLevel(planprincipal.m_RunLevel_Tyle); // 设置为最高权限
 
         // 释放 Principal
         m_pPrincipal->Release();
@@ -137,8 +69,20 @@ bool WinTimeTaskAPI::Create_Plan_Principal()
     return false;
 }
 
-bool WinTimeTaskAPI::Create_Plan_Settings()
+bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
 {
+    // 访问结构体成员
+    VARIANT_BOOL RunOnlyIfIdle = settings.RunOnlyIfIdle;
+    VARIANT_BOOL m_Run_Tasks_On_Demand = settings.Run_Tasks_On_Demand;
+    VARIANT_BOOL m_Immediate_Start_After_Scheduled_Time = settings.Immediate_Start_After_Scheduled_Time;
+    VARIANT_BOOL m_Battery_State = settings.Battery_State;
+    VARIANT_BOOL m_DisallowStartIfBattery = settings.DisallowStartIfBattery;
+    VARIANT_BOOL m_Hide_UI_Display = settings.Hide_UI_Display;
+    VARIANT_BOOL m_Awaken_Alway_Run = settings.Awaken_Alway_Run;
+    VARIANT_BOOL m_RunOnlyIfNetworkAvailable = settings.RunOnlyIfNetworkAvailable;
+    int m_Max_Restart_Attempts = settings.Max_Restart_Attempts;
+    QString m_Task_Timeout_Hours = settings.m_Task_Timeout_Hours;
+    QString m_Delete_Task_After_No_Schedule = settings.m_Delete_Task_After_No_Schedule;
     //设置 任务的 Settings
     m_hr = m_pTask->get_Settings(&m_pSettings);
     if (SUCCEEDED(m_hr))
@@ -153,9 +97,11 @@ bool WinTimeTaskAPI::Create_Plan_Settings()
         m_pSettings->put_AllowDemandStart(m_Immediate_Start_After_Scheduled_Time);   // 允许手动启动
         m_pSettings->put_StopIfGoingOnBatteries(m_Battery_State); // 如果在电池上停止
         m_pSettings->put_DisallowStartIfOnBatteries(m_DisallowStartIfBattery); // 不限制电池下启动
-        // 设置最大运行时间，例如 1 小时
+        // TODO:设置最大运行时间，例如 1 小时
         // SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Timeout_Hours.utf16()))
-        HRESULT result =  m_pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT0S")); // 允许手动启动 。 值为 PT0S 将使任务可以无限期运行。
+        //HRESULT result =  m_pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT5M")); // 允许手动启动 。 值为 PT0S 将使任务可以无限期运行。
+        HRESULT result =  m_pSettings->put_ExecutionTimeLimit(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Timeout_Hours.utf16())));
+
         if (SUCCEEDED(result)) {
             qDebug()<<"put_ExecutionTimeLimit:"<<"设置成功";
         } else {
@@ -185,7 +131,7 @@ bool WinTimeTaskAPI::Create_Plan_Settings()
     return false;
 }
 
-bool WinTimeTaskAPI::Create_Plan_Register()
+bool WinTimeTaskAPI::Create_Plan_Register(const PlanRegister& planregister)
 {
     // 设置注册信息
     m_hr = m_pTask->get_RegistrationInfo(&m_pRegInfo);
@@ -193,8 +139,8 @@ bool WinTimeTaskAPI::Create_Plan_Register()
     if (SUCCEEDED(m_hr))
     {
         // 创造计划的用户 和 用户描述
-        m_pRegInfo->put_Author(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Creator.utf16())));
-        m_pRegInfo->put_Description(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Desc.utf16())));
+        m_pRegInfo->put_Author(SysAllocString(reinterpret_cast<const wchar_t*>(planregister.m_Task_Creator.utf16())));
+        m_pRegInfo->put_Description(SysAllocString(reinterpret_cast<const wchar_t*>(planregister.m_Task_Desc.utf16())));
         // pRegInfo->put_Date();
 
 
@@ -204,11 +150,11 @@ bool WinTimeTaskAPI::Create_Plan_Register()
     return false;
 }
 
-bool WinTimeTaskAPI::Create_Plan_Actions()
+bool WinTimeTaskAPI::Create_Plan_Actions(QList<TaskOperation> m_globalTaskOperations)
 {
     // 设置任务的动作
     m_hr = m_pTask->get_Actions(&m_pActionCollection);
-    if (SUCCEEDED(m_hr))
+    if (SUCCEEDED(m_hr) && m_globalTaskOperations.size() != 0 && !m_globalTaskOperations.first().executable.isEmpty())
     {
         for(int i =0;i<m_globalTaskOperations.size();i++)
         {
@@ -235,47 +181,58 @@ bool WinTimeTaskAPI::Create_Plan_Actions()
     return false;
 }
 
-bool WinTimeTaskAPI::Create_Plan_Triggers()
+bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
 {
     // 设置触发器
     m_hr = m_pTask->get_Triggers(&m_pTriggerCollection);
-    if (SUCCEEDED(m_hr))
-    {
-        //设置触发器 执行 任务 类型 按预定计划，还是自启运行，还是空闲状态 也可以通过循环来创建 多个触发器
+    if (FAILED(m_hr)) return false;
 
-        m_hr = m_pTriggerCollection->Create(TASK_TRIGGER_TIME, &m_pTrigger);
-        if (SUCCEEDED(m_hr))
-        {
-            //设置相关参数细节
-            m_hr = m_pTrigger->QueryInterface(IID_ITimeTrigger, (void**)&m_pTimeTrigger);
-            if (SUCCEEDED(m_hr))
-            {
-                // 设置触发时间
-                m_pTimeTrigger->put_StartBoundary(SysAllocString(L"2023-10-29T10:00:00"));
-                // pTimeTrigger->put_StartBoundary()
-                m_pTimeTrigger->Release();
-            }
-            else
-            {
-                return false;
-            }
-            m_pTrigger->Release();
-        }
-        else
-        {
+    // 创建触发器
+    m_hr = m_pTriggerCollection->Create(plantrigers.m_TaskTriggerType, &m_pTrigger);
+    if (FAILED(m_hr)) return false;
+
+    // 根据触发器类型设置参数
+    switch (plantrigers.m_TaskTriggerType) {
+    case TASK_TRIGGER_TIME:
+    case TASK_TRIGGER_DAILY:
+    case TASK_TRIGGER_WEEKLY:
+        // 设置时间触发器的开始时间
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_ITimeTrigger, (void**)&m_pTimeTrigger))) {
+            m_pTimeTrigger->put_StartBoundary(SysAllocString(L"2023-10-29T10:00:00"));
+            m_pTimeTrigger->Release();
+        } else {
             return false;
         }
+        break;
 
-        m_pTriggerCollection->Release();
+    case TASK_TRIGGER_IDLE:
+        // 设置空闲触发器的参数
+        // (根据需要设置空闲参数)
+        break;
+
+    case TASK_TRIGGER_BOOT:
+        // 设置启动触发器的参数
+        // (根据需要设置启动参数)
+        break;
+
+    case TASK_TRIGGER_LOGON:
+        // 设置登录触发器的参数
+        // (根据需要设置登录参数)
+        break;
+
+        // 添加其他触发器类型的处理
+    default:
+        return false; // 不支持的触发器类型
     }
-    else
-    {
-        return false;
-    }
+
+    // 释放触发器集合
+    m_pTrigger->Release();
+    m_pTriggerCollection->Release();
+
     return true;
 }
 
-bool WinTimeTaskAPI::Create_Plan_Definition()
+bool WinTimeTaskAPI::Create_Plan_Definition(const PlanDefinition& plandefine)
 {
     // 注册任务
     ITaskFolder* pRootFolder = NULL;
@@ -288,7 +245,7 @@ bool WinTimeTaskAPI::Create_Plan_Definition()
 
         IRegisteredTask* pRegisteredTask = NULL;
         m_hr = pRootFolder->RegisterTaskDefinition(
-            _bstr_t(m_Task_Name.toStdWString().c_str()),// _bstr_t(L"API Test"),  // 任务名称
+            _bstr_t(plandefine.m_Task_Name.toStdWString().c_str()),// _bstr_t(L"API Test"),  // 任务名称
             m_pTask,                 // 已注册的任务的定义
             TASK_CREATE_OR_UPDATE, // 定义任务的类型 创建或者更新
             _variant_t(L"NT AUTHORITY\\SYSTEM"), // 使用系统账户
@@ -313,15 +270,6 @@ bool WinTimeTaskAPI::Release_WinTask()
     CoUninitialize();
     return true;
 }
-void WinTimeTaskAPI::AddTaskOperation(const QString &executable, const QString &parameters, const QString &startAt)
-{
-    TaskOperation operation; // 创建一个 TaskOperation 实例
-    operation.executable = executable; // 设置可执行文件
-    operation.parameters = parameters;   // 设置参数
-    operation.startAtDirector = startAt;         // 设置起始时间
 
-    // 将操作添加到全局任务计划
-    m_globalTaskOperations.append(operation);
-}
 
 

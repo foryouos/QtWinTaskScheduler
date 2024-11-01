@@ -10,9 +10,11 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
+    taskscheduler.cpp \
     wintimetaskapi.cpp
 
 HEADERS += \
+    taskscheduler.h \
     wintimetaskapi.h
 
 # Default rules for deployment.
