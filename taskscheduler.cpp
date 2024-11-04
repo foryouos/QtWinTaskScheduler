@@ -3,23 +3,52 @@
 // 构造函数
 TaskScheduler::TaskScheduler()
 {
-    // 初始化其他成员变量
-    // 初始化 TaskOperation
-    m_taskoperation.executable = "";
-    m_taskoperation.parameters = "";
-    m_taskoperation.startAtDirector = "";
-    // 初始化 PlanSettings
-    m_plansettings.RunOnlyIfIdle = VARIANT_TRUE;
-    m_plansettings.Run_Tasks_On_Demand = VARIANT_FALSE;
-    m_plansettings.Immediate_Start_After_Scheduled_Time = VARIANT_TRUE;
-    m_plansettings.Battery_State = VARIANT_FALSE;
-    m_plansettings.DisallowStartIfBattery = VARIANT_TRUE;
+    // 计划任务的名称
+    m_plandefinition.m_Task_Name = "TaskScheduler API";
+    // 计划任务的登录用户组 系统用户组
+    m_planprincipal.m_Task_Account = "NT AUTHORITY\\SYSTEM";
+    //计划任务的创建者
+    m_planregister.m_Task_Creator = "TaskScheduler Qt";
+    //计划任务的描述信息
+    m_planregister.m_Task_Desc = "This is a sample plan definition.";
+    // 不管用户是否登录都要运行
+    m_planprincipal.m_LOGON_TYPE = TASK_LOGON_TYPE::TASK_LOGON_NONE;            // 不管用户是否登录都要运行
+    // 是否使用管理员权限
+    m_planprincipal.m_RunLevel_Tyle = TASK_RUNLEVEL_TYPE::TASK_RUNLEVEL_HIGHEST; // 默认使用最高权限
+    // 隐藏
     m_plansettings.Hide_UI_Display = VARIANT_FALSE;
-    m_plansettings.Awaken_Alway_Run = VARIANT_TRUE;
+
+    // 初始化 PlanSettings
+    //  是否启用仅当计算机空闲时间超过下列值时才启动此任务
+    m_plansettings.RunOnlyIfIdle = VARIANT_TRUE;
+    // 指示运行任务之前计算机必须处于空闲状态的时间
+    m_plansettings.IdleDuration ="P5D";
+    // 空闲时间 等待的时间量
+    m_plansettings.WaitTimeout = "PT1H";
+
+    // 如果计算机不再空闲 则停止
+    m_plansettings.StopOnIdleEnd = VARIANT_TRUE;
+
+    // 如果空闲状态继续，则重新启动
+    m_plansettings.RestartOnIdle = VARIANT_FALSE;
+    // 是否只有在计算机使用交流电源时才启动任务
+    m_plansettings.DisallowStartIfBattery = VARIANT_TRUE;
+    // 如果计算机改用电池电源，则停止
+    m_plansettings.Battery_State = VARIANT_TRUE;
+
+    // 唤醒计算机 运行此任务
+    m_plansettings.Awaken_Alway_Run = VARIANT_FALSE;
+    // 只有在以下网络连接可用时才启动
     m_plansettings.RunOnlyIfNetworkAvailable = VARIANT_FALSE;
+
+    // 设置: 允许按需运行任务
+    m_plansettings.Run_Tasks_On_Demand = VARIANT_TRUE;
+    // 设置:如果过了计划开始时间，立即启动任务
+    m_plansettings.Immediate_Start_After_Scheduled_Time = VARIANT_FALSE;
+    // 如果任务失败，按一下频率重新启动
+    m_plansettings.m_Restart_Frequency = "PT1M";
+    // 尝试重新启动最多次数
     m_plansettings.Max_Restart_Attempts = 3;
-    m_plansettings.m_Restart_Frequency = "10";
-    m_plansettings.m_Force_Stop_On_Request = VARIANT_TRUE;
     // 4: 如果计划任务事件操作以下时间，停止任务(默认为3天 72小时  PT0S不限制时间)
     // 其格式有具体的限制  按照规范 设置 否则 会设置失败
     /* 此字符串的格式为 PnYnMnDTnHnMnS，
@@ -34,35 +63,38 @@ TaskScheduler::TaskScheduler()
      *  PT0S 值将使任务无限期运行。
      *
      * */
-    m_plansettings.m_Task_Timeout_Hours = "P5D";                                //如果程序运行超过设置的此时间则停止运行
+    m_plansettings.m_Task_Timeout_Hours = "P3D";//如果程序运行超过设置的此时间则停止运行
+    // TODO:如果请求后任务还在运行，强行将其停止  未生效
+    m_plansettings.m_Force_Stop_On_Request = VARIANT_TRUE;
+    // TODO: 暂未生效 需要触发器配合 如果任务在此之后没有运行 则删除任务  如果未为此属性指定任何只，则任务计划程序服务不会删除该任务
     m_plansettings.m_Delete_Task_After_No_Schedule="";
 
-    // 初始化 PlanRegister
-    m_planregister.m_Task_Creator = "TaskScheduler Qt";                        //计划任务的创建者
-    m_planregister.m_Task_Desc = "This is a sample plan definition.";          //计划任务的描述信息
 
-    // 初始化 PlanTriggers
+    // 初始化 任务执行清单
+    m_taskoperation.executable = "";
+    m_taskoperation.parameters = "";
+    m_taskoperation.startAtDirector = "";
+    // 初始化 触发器 PlanTriggers
     m_plantriggers.m_TaskTriggerType = TASK_TRIGGER_TYPE2::TASK_TRIGGER_BOOT;  // 触发器 当系统启动时
 
-    // 初始化 PlanDefinition
-    m_plandefinition.m_Task_Name = "TaskScheduler API";                         // 测试计划任务程序 API
-    // 初始化 m_planprincipal
-    m_planprincipal.m_LOGON_TYPE = TASK_LOGON_TYPE::TASK_LOGON_NONE;            // 不管用户是否登录都要运行
-    m_planprincipal.m_Task_Account = "NT AUTHORITY\\SYSTEM";                    // 申请 系统权限
-    m_planprincipal.m_RunLevel_Tyle = TASK_RUNLEVEL_TYPE::TASK_RUNLEVEL_HIGHEST; // 默认使用最高权限
+ // 测试计划任务程序 API
+
 
     wintimetaskapi = new WinTimeTaskAPI;
 
 
-    this->AddTaskOperation("C://qt.exe","","");
-
-
-    // TODO:创建计划任务测试
-    this->Create_Plan_Task_API();
+    // this->AddTaskOperation("C://qt.exe","","");
+    // // TODO:创建计划任务测试
+    // this->Create_Plan_Task_API();
 
 
 }
-bool TaskScheduler::Create_Plan_Task_API()
+// 任务计划的析构函数
+TaskScheduler::~TaskScheduler()
+{
+
+}
+bool TaskScheduler::Create_Plan_Task()
 {
     if(wintimetaskapi == nullptr)
     {
@@ -132,7 +164,6 @@ void TaskScheduler::AddTaskOperation(const QString &executable, const QString &p
     operation.executable = executable; // 设置可执行文件
     operation.parameters = parameters;   // 设置参数
     operation.startAtDirector = startAt;         // 设置起始时间
-
     // 将操作添加到全局任务计划
     m_globalTaskOperations.append(operation);
 }
@@ -215,40 +246,33 @@ void TaskScheduler::setGlobalTaskOperations(const QList<TaskOperation>& operatio
 //     return m_RunOnlyIfIdle;
 // }
 
-// void TaskScheduler::setRunOnlyIfIdle(VARIANT_BOOL value) {
-//     m_RunOnlyIfIdle = value;
-// }
+void TaskScheduler::SetIdleCondition(VARIANT_BOOL Free_Time_Run,QString Free_Time,QString FreeWait_Time,VARIANT_BOOL NoFreeStop,VARIANT_BOOL HavedFreeContinueRun)
+{
+    m_plansettings.RunOnlyIfIdle = Free_Time_Run;
+    // 指示运行任务之前计算机必须处于空闲状态的时间
+    m_plansettings.IdleDuration =Free_Time;
+    // 空闲时间 等待的时间量
+    m_plansettings.WaitTimeout = FreeWait_Time;
 
-VARIANT_BOOL TaskScheduler::isBatteryState() const {
-    return m_plansettings.Battery_State;
+    // 如果计算机不再空闲 则停止
+    m_plansettings.StopOnIdleEnd = NoFreeStop;
+
+    // 如果空闲状态继续，则重新启动
+    m_plansettings.RestartOnIdle = HavedFreeContinueRun;
+}
+void TaskScheduler::SetBatteryCondition(VARIANT_BOOL AC_Enable, VARIANT_BOOL BatteryStop, VARIANT_BOOL AwakenAlwaysRun)
+{
+    // 是否只有在计算机使用交流电源时才启动任务
+    m_plansettings.DisallowStartIfBattery = AC_Enable;
+    // 如果计算机改用电池电源，则停止
+    m_plansettings.Battery_State = BatteryStop;
+    // 唤醒计算机 运行此任务
+    m_plansettings.Awaken_Alway_Run = AwakenAlwaysRun;
 }
 
-void TaskScheduler::setBatteryState(VARIANT_BOOL value) {
-    m_plansettings.Battery_State = value;
-}
-
-VARIANT_BOOL TaskScheduler::isDisallowStartIfBattery() const {
-    return m_plansettings.DisallowStartIfBattery;
-}
-
-void TaskScheduler::setDisallowStartIfBattery(VARIANT_BOOL value) {
-    m_plansettings.DisallowStartIfBattery = value;
-}
-
-VARIANT_BOOL TaskScheduler::isAwakenAlwaysRun() const {
-    return m_plansettings.Awaken_Alway_Run;
-}
-
-void TaskScheduler::setAwakenAlwaysRun(VARIANT_BOOL value) {
-    m_plansettings.Awaken_Alway_Run = value;
-}
-
-VARIANT_BOOL TaskScheduler::isRunOnlyIfNetworkAvailable() const {
-    return m_plansettings.RunOnlyIfNetworkAvailable;
-}
-
-void TaskScheduler::setRunOnlyIfNetworkAvailable(VARIANT_BOOL value) {
-    m_plansettings.RunOnlyIfNetworkAvailable = value;
+void TaskScheduler::SetNetWordCondition(VARIANT_BOOL NetworkEnableRun)
+{
+    m_plansettings.RunOnlyIfNetworkAvailable = NetworkEnableRun;
 }
 
 VARIANT_BOOL TaskScheduler::isRunTasksOnDemand() const {

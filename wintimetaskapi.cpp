@@ -22,6 +22,7 @@ bool WinTimeTaskAPI::WinTimeTaskInit()
     m_hr = CoCreateInstance(CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER, IID_ITaskService, (void**)&m_pService);
     if (FAILED(m_hr))
     {
+        emit SendErrorDetail(QString("Failed to create TaskService instance:%1").arg(_com_error(m_hr).ErrorMessage()));
         qDebug()<<"Failed to create TaskService instance: " << _com_error(m_hr).ErrorMessage();
         return false;
     }
@@ -30,6 +31,7 @@ bool WinTimeTaskAPI::WinTimeTaskInit()
     m_hr = m_pService->Connect(_variant_t(), _variant_t(), _variant_t(), _variant_t());
     if (FAILED(m_hr))
     {
+        emit  SendErrorDetail(QString("Failed to connect to TaskService:%1").arg(_com_error(m_hr).ErrorMessage()));
         qDebug()<<"Failed to connect to TaskService: " << _com_error(m_hr).ErrorMessage();
         m_pService->Release();
         return false;
@@ -43,6 +45,7 @@ bool WinTimeTaskAPI::Create_Plan_Task()
     m_hr = m_pService->NewTask(0, &m_pTask);
     if (FAILED(m_hr))
     {
+        emit SendErrorDetail(QString("Failed to create new task::%1").arg(_com_error(m_hr).ErrorMessage()));
         qDebug()<<"Failed to create new task: " << _com_error(m_hr).ErrorMessage();
         m_pService->Release();
         return false;
@@ -66,6 +69,10 @@ bool WinTimeTaskAPI::Create_Plan_Principal(const Plan_Principal& planprincipal)
         m_pPrincipal->Release();
         return true;
     }
+    else
+    {
+        this->Deal_Fail_Hr(m_hr);
+    }
     return false;
 }
 
@@ -73,6 +80,11 @@ bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
 {
     // 访问结构体成员
     VARIANT_BOOL RunOnlyIfIdle = settings.RunOnlyIfIdle;
+
+    VARIANT_BOOL StopOnIdleEnd = settings.StopOnIdleEnd;
+    QString IdleDuration = settings.IdleDuration;
+    VARIANT_BOOL RestartOnIdle = settings.RestartOnIdle;
+    QString WaitTimeout = settings.WaitTimeout;
     VARIANT_BOOL m_Run_Tasks_On_Demand = settings.Run_Tasks_On_Demand;
     VARIANT_BOOL m_Immediate_Start_After_Scheduled_Time = settings.Immediate_Start_After_Scheduled_Time;
     VARIANT_BOOL m_Battery_State = settings.Battery_State;
@@ -80,9 +92,12 @@ bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
     VARIANT_BOOL m_Hide_UI_Display = settings.Hide_UI_Display;
     VARIANT_BOOL m_Awaken_Alway_Run = settings.Awaken_Alway_Run;
     VARIANT_BOOL m_RunOnlyIfNetworkAvailable = settings.RunOnlyIfNetworkAvailable;
+    VARIANT_BOOL m_Force_Stop_On_Request = settings.m_Force_Stop_On_Request;
     int m_Max_Restart_Attempts = settings.Max_Restart_Attempts;
     QString m_Task_Timeout_Hours = settings.m_Task_Timeout_Hours;
     QString m_Delete_Task_After_No_Schedule = settings.m_Delete_Task_After_No_Schedule;
+    QString m_Restart_Frequency = settings.m_Restart_Frequency;
+
     //设置 任务的 Settings
     m_hr = m_pTask->get_Settings(&m_pSettings);
     if (SUCCEEDED(m_hr))
@@ -90,13 +105,69 @@ bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
         // 创建并配置空闲设置
         // IIdleSettings idlesetting;
         // // 应用空闲设置
-        m_pSettings->put_RunOnlyIfIdle(RunOnlyIfIdle);
+        m_hr = m_pSettings->put_RunOnlyIfIdle(RunOnlyIfIdle);
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+        // IIdleSettings 接口表示指定任务计划程序在计算机处于空闲状态时如何执行任务
+        m_pSettings->get_IdleSettings(&m_IIdlesettings);
+        if(SUCCEEDED(m_hr))
+        {
+            // 指示在运行任务之前计算机必须处于空闲状态的时间
+            m_hr = m_IIdlesettings->put_IdleDuration(SysAllocString(IdleDuration.toStdWString().c_str()));
+            if(FAILED(m_hr))
+            {
+                this->Deal_Fail_Hr(m_hr);
+            }
+            // 如果空闲状态继续，则重新启动
+            m_hr = m_IIdlesettings->put_RestartOnIdle(RestartOnIdle);
+            if(FAILED(m_hr))
+            {
+                this->Deal_Fail_Hr(m_hr);
+            }
+            // 如果计算机不再空闲，则停止
+            m_hr = m_IIdlesettings->put_StopOnIdleEnd(StopOnIdleEnd);
+            if(FAILED(m_hr))
+            {
+                this->Deal_Fail_Hr(m_hr);
+            }
+
+            // 设置等待空闲条件出现的时间量
+            m_hr = m_IIdlesettings->put_WaitTimeout(SysAllocString(reinterpret_cast<const wchar_t*>(WaitTimeout.utf16())));
+            if(FAILED(m_hr))
+            {
+                this->Deal_Fail_Hr(m_hr);
+            }
+        }
+        else
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+
+
 
         // m_pSettings->put_IdleSettings(idleSettings);
-        m_pSettings->put_StartWhenAvailable(m_Run_Tasks_On_Demand); // 可用时启动
-        m_pSettings->put_AllowDemandStart(m_Immediate_Start_After_Scheduled_Time);   // 允许手动启动
-        m_pSettings->put_StopIfGoingOnBatteries(m_Battery_State); // 如果在电池上停止
-        m_pSettings->put_DisallowStartIfOnBatteries(m_DisallowStartIfBattery); // 不限制电池下启动
+        m_hr = m_pSettings->put_StartWhenAvailable(m_Run_Tasks_On_Demand); // 可用时启动
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+        m_hr = m_pSettings->put_AllowDemandStart(m_Immediate_Start_After_Scheduled_Time);   // 允许手动启动
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+        m_hr = m_pSettings->put_StopIfGoingOnBatteries(m_Battery_State); // 如果在电池上停止
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+        m_hr = m_pSettings->put_DisallowStartIfOnBatteries(m_DisallowStartIfBattery); // 不限制电池下启动
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
         // TODO:设置最大运行时间，例如 1 小时
         // SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Timeout_Hours.utf16()))
         //HRESULT result =  m_pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT5M")); // 允许手动启动 。 值为 PT0S 将使任务可以无限期运行。
@@ -106,27 +177,60 @@ bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
             qDebug()<<"put_ExecutionTimeLimit:"<<"设置成功";
         } else {
             // 错误处理.
+            this->Deal_Fail_Hr(result);
             qDebug()<<"put_ExecutionTimeLimit:"<<"设置 失败 Fail";
         }
         // 设置过期后删除任务的时间（例如 30 天后）
-        m_pSettings->put_Hidden(m_Hide_UI_Display);
+        m_hr = m_pSettings->put_Hidden(m_Hide_UI_Display);
 
         // m_pSettings->put_NetworkSettings(INetworkSettings);
+        BSTR delay;
+        m_hr = m_pSettings->get_DeleteExpiredTaskAfter(&delay);
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+        qDebug()<<"get_DeleteExpiredTaskAfter:"<<QString::fromWCharArray(delay);
+
         // 如果任务没有计划再次运行，则在此之后删除任务
-        m_pSettings->put_DeleteExpiredTaskAfter(SysAllocString(reinterpret_cast<const wchar_t*>(m_Delete_Task_After_No_Schedule.utf16())));
+        // 如果未为此属性指定任何只，则任务计划程序服务不会删除该任务
+        m_hr = m_pSettings->put_DeleteExpiredTaskAfter(SysAllocString(reinterpret_cast<const wchar_t*>(m_Delete_Task_After_No_Schedule.utf16())));
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
         // 该值指示任务计划程序将在运行任务时唤醒计算机，并保持计算机处于唤醒状态，直到任务完成
-        m_pSettings->put_WakeToRun(m_Awaken_Alway_Run);
+        m_hr = m_pSettings->put_WakeToRun(m_Awaken_Alway_Run);
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
         // 是否 只在网络 可用时 运行任务
-        m_pSettings->put_RunOnlyIfNetworkAvailable(m_RunOnlyIfNetworkAvailable);
+        m_hr = m_pSettings->put_RunOnlyIfNetworkAvailable(m_RunOnlyIfNetworkAvailable);
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
 
         // 如果任务失败，按如下频率重新启动
-        //m_pSettings->put_RestartInterval(SysAllocString(reinterpret_cast<const wchar_t*>(m_Restart_Frequency.utf16())));
+        m_hr = m_pSettings->put_RestartInterval(SysAllocString(reinterpret_cast<const wchar_t*>(m_Restart_Frequency.utf16())));
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
         // 尝试重新启动最多次数
-        m_pSettings->put_RestartCount(m_Max_Restart_Attempts);
-
+        m_hr = m_pSettings->put_RestartCount(m_Max_Restart_Attempts);
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
 
         m_pSettings->Release();
         return true;
+    }
+    else
+    {
+        this->Deal_Fail_Hr(m_hr);
     }
     return false;
 }
@@ -139,13 +243,26 @@ bool WinTimeTaskAPI::Create_Plan_Register(const PlanRegister& planregister)
     if (SUCCEEDED(m_hr))
     {
         // 创造计划的用户 和 用户描述
-        m_pRegInfo->put_Author(SysAllocString(reinterpret_cast<const wchar_t*>(planregister.m_Task_Creator.utf16())));
-        m_pRegInfo->put_Description(SysAllocString(reinterpret_cast<const wchar_t*>(planregister.m_Task_Desc.utf16())));
+        m_hr = m_pRegInfo->put_Author(SysAllocString(reinterpret_cast<const wchar_t*>(planregister.m_Task_Creator.utf16())));
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
+        m_hr = m_pRegInfo->put_Description(SysAllocString(reinterpret_cast<const wchar_t*>(planregister.m_Task_Desc.utf16())));
+
+        if(FAILED(m_hr))
+        {
+            this->Deal_Fail_Hr(m_hr);
+        }
         // pRegInfo->put_Date();
 
 
         m_pRegInfo->Release();
         return true;
+    }
+    else
+    {
+        this->Deal_Fail_Hr(m_hr);
     }
     return false;
 }
@@ -164,19 +281,43 @@ bool WinTimeTaskAPI::Create_Plan_Actions(QList<TaskOperation> m_globalTaskOperat
             {
                     // 设置要执行的程序
                     IExecAction* pExecAction = NULL;
-                    m_pAction->QueryInterface(IID_IExecAction, (void**)&pExecAction);
+                    m_hr = m_pAction->QueryInterface(IID_IExecAction, (void**)&pExecAction);
+                    if(FAILED(m_hr))
+                    {
+                        this->Deal_Fail_Hr(m_hr);
+                    }
                     //pExecAction->put_Path(SysAllocString(L"C:\\Path\\To\\YourExecutable.exe")); //设置程序执行目录
-                    pExecAction->put_Path(SysAllocString(reinterpret_cast<const wchar_t*>(m_globalTaskOperations.at(i).executable.utf16())));
-                    pExecAction->put_Arguments(SysAllocString(reinterpret_cast<const wchar_t*>(m_globalTaskOperations.at(i).parameters.utf16()))); //设置参数
-                    pExecAction->put_WorkingDirectory(SysAllocString(reinterpret_cast<const wchar_t*>(m_globalTaskOperations.at(i).startAtDirector.utf16())));  //设置起始于
-
+                    m_hr = pExecAction->put_Path(SysAllocString(reinterpret_cast<const wchar_t*>(m_globalTaskOperations.at(i).executable.utf16())));
+                    if(FAILED(m_hr))
+                    {
+                        this->Deal_Fail_Hr(m_hr);
+                    }
+                    m_hr = pExecAction->put_Arguments(SysAllocString(reinterpret_cast<const wchar_t*>(m_globalTaskOperations.at(i).parameters.utf16()))); //设置参数
+                    if(FAILED(m_hr))
+                    {
+                        this->Deal_Fail_Hr(m_hr);
+                    }
+                    m_hr = pExecAction->put_WorkingDirectory(SysAllocString(reinterpret_cast<const wchar_t*>(m_globalTaskOperations.at(i).startAtDirector.utf16())));  //设置起始于
+                    if(FAILED(m_hr))
+                    {
+                        this->Deal_Fail_Hr(m_hr);
+                    }
                     pExecAction->Release();
+
+            }
+            else
+            {
+                this->Deal_Fail_Hr(m_hr);
 
             }
         }
 
         m_pActionCollection->Release();
         return true;
+    }
+    else
+    {
+        this->Deal_Fail_Hr(m_hr);
     }
     return false;
 }
@@ -241,8 +382,6 @@ bool WinTimeTaskAPI::Create_Plan_Definition(const PlanDefinition& plandefine)
     {
         // 获取任务的定义
         qDebug()<<"创建任务";
-
-
         IRegisteredTask* pRegisteredTask = NULL;
         m_hr = pRootFolder->RegisterTaskDefinition(
             _bstr_t(plandefine.m_Task_Name.toStdWString().c_str()),// _bstr_t(L"API Test"),  // 任务名称
@@ -257,6 +396,10 @@ bool WinTimeTaskAPI::Create_Plan_Definition(const PlanDefinition& plandefine)
         pRootFolder->Release();
 
     }
+    else
+    {
+        this->Deal_Fail_Hr(m_hr);
+    }
 
 
     return 1;
@@ -269,6 +412,14 @@ bool WinTimeTaskAPI::Release_WinTask()
     m_pService->Release();
     CoUninitialize();
     return true;
+}
+
+void WinTimeTaskAPI::Deal_Fail_Hr(HRESULT m_hr)
+{
+    // 处理错误，发送错误信息
+    _com_error err(m_hr);
+    QString errorMessage = QString::fromWCharArray(err.ErrorMessage());
+    emit SendErrorDetail(errorMessage); // 发出信号
 }
 
 

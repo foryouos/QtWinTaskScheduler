@@ -13,6 +13,7 @@ class TaskScheduler : public QWidget
 public:
     // 构造函数
     TaskScheduler();
+    ~TaskScheduler() override;
 
     // 常规设置接口
     QString getTaskName() const;
@@ -44,21 +45,16 @@ public:
     void setGlobalTaskOperations(const QList<TaskOperation>& operations);
 
     // 条件页面的空闲
-    VARIANT_BOOL isRunOnlyIfIdle() const;
-    void setRunOnlyIfIdle(VARIANT_BOOL value);
+    // VARIANT_BOOL isRunOnlyIfIdle() const;
+    // 设置条件属性 空闲选项
+    void SetIdleCondition(VARIANT_BOOL Free_Time_Run,QString Free_Time,QString FreeWait_Time,VARIANT_BOOL NoFreeStop,VARIANT_BOOL HavedFreeContinueRun);
 
     // 电源页面功能控制
-    VARIANT_BOOL isBatteryState() const;
-    void setBatteryState(VARIANT_BOOL value);
+    void SetBatteryCondition(VARIANT_BOOL AC_Enable,VARIANT_BOOL BatteryStop,VARIANT_BOOL AwakenAlwaysRun);
+    // 网络条件控制
+    void SetNetWordCondition(VARIANT_BOOL NetworkEnableRun);
 
-    VARIANT_BOOL isDisallowStartIfBattery() const;
-    void setDisallowStartIfBattery(VARIANT_BOOL value);
 
-    VARIANT_BOOL isAwakenAlwaysRun() const;
-    void setAwakenAlwaysRun(VARIANT_BOOL value);
-
-    VARIANT_BOOL isRunOnlyIfNetworkAvailable() const;
-    void setRunOnlyIfNetworkAvailable(VARIANT_BOOL value);
 
     // 允许按需运行任务
     VARIANT_BOOL isRunTasksOnDemand() const;
@@ -86,14 +82,13 @@ public:
     // 删除任务的设置
     QString getDeleteTaskAfterNoSchedule() const;
     void setDeleteTaskAfterNoSchedule(const QString& setting);
-
     // 创建任务计划程序函数
 public slots:
     // 简单API 就是 创建名称 脚本 参数 ---简单的计划任务
-    bool Create_Plan_Task_API();
-    // 想全局任务计划中 添加任务
+    bool Create_Plan_Task();
+    // 想全局任务计划中 任务名称   添加任务
     void AddTaskOperation(const QString& executable, const QString& parameters, const QString& startAt);
-
+    // 如果时修改计划任务呢
 
 
 private:

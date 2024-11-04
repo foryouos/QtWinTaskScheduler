@@ -33,6 +33,10 @@ struct TaskOperation {
 // 计划设置参数
 struct PlanSettings {
     VARIANT_BOOL RunOnlyIfIdle;  // 条件页面的空闲 仅当计算机空闲时间超过如下值才启动此任务
+    VARIANT_BOOL StopOnIdleEnd; // 该值表示如果空闲条件在任务完成之前结束，任务计划将终止任务，空闲条件在计算机不再空闲时结束
+    QString IdleDuration;       // 指示运行任务之前计算机必须处于空闲状态的时间
+    VARIANT_BOOL RestartOnIdle;  // 如果空闲状态继续则重新启动
+    QString WaitTimeout;         // 计划任务程序空闲条件出现的时间量
     VARIANT_BOOL Run_Tasks_On_Demand;// 1,设置计划任务 允许按需运行任务
     VARIANT_BOOL Immediate_Start_After_Scheduled_Time;
     VARIANT_BOOL Battery_State; // 只有在计算机使用交流电源时才启动此任务
@@ -97,10 +101,11 @@ public slots:
     bool Create_Plan_Definition(const PlanDefinition& plandefine);
     // 9.释放任务计划程序资源
     bool Release_WinTask();
-
+private:
+    void Deal_Fail_Hr(HRESULT m_hr);
 
 signals:
-    void SendErrorDetail(const QVariantMap &data);
+    void SendErrorDetail(const QString &data);
     // 计划任务创建与修改过程中的 全局参数
 private:
     HRESULT m_hr;
@@ -114,7 +119,7 @@ private:
     ITrigger* m_pTrigger = NULL;
     ITimeTrigger* m_pTimeTrigger = NULL;
     ITaskSettings* m_pSettings = NULL; //设置任务的设置
-
+    IIdleSettings *m_IIdlesettings = nullptr;  //指定任务计划程序在
 
     // 根据用户需求变更的自定义参数
 private:
