@@ -88,7 +88,7 @@ public slots:
     bool Create_Plan_Task();
     // 想全局任务计划中 任务名称   添加任务
     void AddTaskOperation(const QString& executable, const QString& parameters, const QString& startAt);
-    // 如果时修改计划任务呢
+    // 添加触发条件
 
 
 private:
@@ -99,8 +99,10 @@ private:
     TaskOperation m_taskoperation;
     PlanSettings m_plansettings;
     PlanRegister m_planregister;
-    PlanTriggers m_plantriggers;
     PlanDefinition m_plandefinition;
+    // 添加触发条件，触发条件 可能有多个
+    PlanTriggers m_plantriggers;
+    QList<PlanTriggers> m_plantriggers_list;
     // 计划任务列表
     QList<TaskOperation> m_globalTaskOperations;
 

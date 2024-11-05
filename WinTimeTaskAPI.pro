@@ -26,6 +26,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 # 添加要链接的库
 LIBS += -ltaskschd
 LIBS += -lcredui
+# LIBS += -lcomsupp
 
 DISTFILES += \
     README.md

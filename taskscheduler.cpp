@@ -77,7 +77,7 @@ TaskScheduler::TaskScheduler()
     // 初始化 触发器 PlanTriggers
     m_plantriggers.m_TaskTriggerType = TASK_TRIGGER_TYPE2::TASK_TRIGGER_BOOT;  // 触发器 当系统启动时
 
- // 测试计划任务程序 API
+    // 测试计划任务程序 API
 
 
     wintimetaskapi = new WinTimeTaskAPI;

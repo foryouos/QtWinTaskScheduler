@@ -333,32 +333,303 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
     if (FAILED(m_hr)) return false;
 
     // 根据触发器类型设置参数
-    switch (plantrigers.m_TaskTriggerType) {
+    // *********** 所有触发器 都会继承 高级参数 ************
+    switch (plantrigers.m_TaskTriggerType)
+    {
+    case TASK_TRIGGER_EVENT:
+    {
+        // 发生在特定事件时触发任务
+        // 设置基于事件触发的任务
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IEventTrigger, (void**)&m_pEventTrigger))) {
+            if(plantrigers.m_TriggerParams.canConvert<TASK_TRIGGER_EVENT_Param>())
+            {
+                TASK_TRIGGER_EVENT_Param params = plantrigers.m_TriggerParams.value<TASK_TRIGGER_EVENT_Param>();
+                // 这里设置事件源和事件名称等信息
+                // m_pEventTrigger->pput_EventTriggerDetails(L"SampleEventSource", L"SampleEventName");
+                m_pEventTrigger->put_Delay(SysAllocString(params.Delay.toStdWString().c_str())); //指定事件发生到任务启动之间的时间量
+                m_pEventTrigger->put_Subscription(SysAllocString(params.Subscription.toStdWString().c_str())); // 获取或设置一个查询字符串，该字符串标识触发触发器的事件
+
+                m_pEventTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_pEventTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_pEventTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_pEventTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_pEventTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_pEventTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_pEventTrigger->Release();
+            }
+        }
+        else {
+            return false; // 事件触发器初始化失败
+        }
+        break;
+    }
     case TASK_TRIGGER_TIME:
-    case TASK_TRIGGER_DAILY:
-    case TASK_TRIGGER_WEEKLY:
         // 设置时间触发器的开始时间
         if (SUCCEEDED(m_pTrigger->QueryInterface(IID_ITimeTrigger, (void**)&m_pTimeTrigger))) {
-            m_pTimeTrigger->put_StartBoundary(SysAllocString(L"2023-10-29T10:00:00"));
-            m_pTimeTrigger->Release();
+            if(plantrigers.m_TriggerParams.canConvert<TASK_TRIGGER_TIME_param>())
+            {
+                TASK_TRIGGER_TIME_param params = plantrigers.m_TriggerParams.value<TASK_TRIGGER_TIME_param>();
+
+                m_pTimeTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str())); // 设置随机添加到触发器的开始时间的延迟时间
+
+
+                m_pTimeTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_pTimeTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_pTimeTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_pTimeTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_pTimeTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_pTimeTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_pTimeTrigger->Release();
+            }
         } else {
             return false;
         }
         break;
 
+    case TASK_TRIGGER_DAILY:
+        // 设置每日触发器
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IDailyTrigger, (void**)&m_IDailyTrigger))) {
+
+            if(plantrigers.m_TriggerParams.canConvert<DailyTriggerParams>())
+            {
+                DailyTriggerParams params = plantrigers.m_TriggerParams.value<DailyTriggerParams>();
+
+                m_IDailyTrigger->put_DaysInterval(params.DayInterval); //设置计划中天数之间的间隔  1将生成每日计划，2 每隔一天的计划
+                m_IDailyTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str())); //设置随机添加到触发器的开始时间的延迟时间
+
+                m_IDailyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IDailyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IDailyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_IDailyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IDailyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_pEventTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_IDailyTrigger->Release();
+            }
+
+
+
+        } else {
+            return false;
+        }
+        break;
+    case TASK_TRIGGER_WEEKLY:
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IWeeklyTrigger, (void**)&m_pWeeklyTrigger)))
+        {
+            if(plantrigers.m_TriggerParams.canConvert<WeeklyTriggerParams>())
+            {
+                WeeklyTriggerParams params = plantrigers.m_TriggerParams.value<WeeklyTriggerParams>();
+
+                m_pWeeklyTrigger->put_DaysOfWeek(params.dayOfWeek); //设置任务的星期数
+                m_pWeeklyTrigger->put_WeeksInterval(params.WeeksInterval); // 设置计划中周数之间的间隔
+                m_pWeeklyTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str()));//设置随机添加到触发器开始的延迟时间
+
+                m_pWeeklyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_pWeeklyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_pWeeklyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_pWeeklyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_pWeeklyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_pWeeklyTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_pWeeklyTrigger->Release();
+            }
+        } else {
+            return false;
+        }
+        break;
+    case TASK_TRIGGER_MONTHLY:
+    {
+        // 设置每月触发器
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IMonthlyTrigger, (void**)&m_IMonthlyTrigger))) {
+            if(plantrigers.m_TriggerParams.canConvert<MonthlyTriggerParams>())
+            {
+                MonthlyTriggerParams params = plantrigers.m_TriggerParams.value<MonthlyTriggerParams>();
+                // 设置每月的日期或星期几触发
+                m_IMonthlyTrigger->put_MonthsOfYear(params.MonthsOfYear); // 设置运行一年中的月份
+                m_IMonthlyTrigger->put_DaysOfMonth(params.DaysOfMonth); // 设置运行任务的月份中的天数
+
+                m_IMonthlyTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str()));
+                m_IMonthlyTrigger->put_RunOnLastDayOfMonth(params.RunOnLastDayOfMonth); //指示任务在当月的最后一周运行
+
+                m_IMonthlyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IMonthlyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IMonthlyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_IMonthlyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IMonthlyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_IMonthlyTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_IMonthlyTrigger->Release();
+            }
+        }
+        else {
+            return false; // 每月触发器初始化失败
+        }
+        break;
+    }
+    case TASK_TRIGGER_MONTHLYDOW:
+    {
+        // 设置每月基于星期几触发的任务
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IMonthlyDOWTrigger, (void**)&m_IMonthlyDOWTrigger))) {
+
+            if(plantrigers.m_TriggerParams.canConvert<MONTHLYDOWTriggerParams>())
+            {
+                MONTHLYDOWTriggerParams params = plantrigers.m_TriggerParams.value<MONTHLYDOWTriggerParams>();
+                // 设置每月的第一个星期一触发
+                m_IMonthlyDOWTrigger->put_DaysOfWeek(params.DaysOfWeek); // 每月的第一个星期一
+                m_IMonthlyDOWTrigger->put_WeeksOfMonth(params.WeeksOfMonth); // 设置任务运行的月份中的周数 第一个星期
+                m_IMonthlyDOWTrigger->put_MonthsOfYear(params.MonthsOfYear); // 设置运行一年中的月份
+                m_IMonthlyDOWTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str()));
+                m_IMonthlyDOWTrigger->put_RunOnLastWeekOfMonth(params.RunOnLastWeekOfMonth); //指示任务在当月的最后一周运行
+
+                m_IMonthlyDOWTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IMonthlyDOWTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IMonthlyDOWTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_IMonthlyDOWTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IMonthlyDOWTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_IMonthlyDOWTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_IMonthlyDOWTrigger->Release();
+            }
+        }
+        else {
+            return false; // 每月星期几触发器初始化失败
+        }
+        break;
+    }
     case TASK_TRIGGER_IDLE:
         // 设置空闲触发器的参数
         // (根据需要设置空闲参数)
-        break;
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IIdleTrigger, (void**)&m_IIdleTrigger))) {
+            if(plantrigers.m_TriggerParams.canConvert<TASK_TRIGGER_IDLE_param>())
+            {
+                TASK_TRIGGER_IDLE_param params = plantrigers.m_TriggerParams.value<TASK_TRIGGER_IDLE_param>();
+                // m_IIdleTrigger->pu(SysAllocString(L"PT10M")); // 10分钟的空闲时间
+                // m_IIdleTrigger->put_WaitForIdle(TRUE); // 等待系统空闲
 
+
+                m_IIdleTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IIdleTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IIdleTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_IIdleTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IIdleTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_IIdleTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_IIdleTrigger->Release();
+            }
+        } else {
+            return false;
+        }
+        break;
+    case TASK_TRIGGER_REGISTRATION:
+    {
+        // 设置任务注册时触发的任务
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IRegistrationTrigger, (void**)&m_IRegistrationTrigger))) {
+
+            if(plantrigers.m_TriggerParams.canConvert<Task_Registration_Param>())
+            {
+                Task_Registration_Param params = plantrigers.m_TriggerParams.value<Task_Registration_Param>();
+                // 这里可以设置注册触发的条件，具体依赖于应用场景 PnYnMnDTnHnMnS
+                // 设置从注册任务到启动任务之间的时间量
+                m_IRegistrationTrigger->put_Delay(SysAllocString(params.Dalay.toStdWString().c_str()));
+
+                m_IRegistrationTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IRegistrationTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IRegistrationTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_IRegistrationTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IRegistrationTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_IRegistrationTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_IRegistrationTrigger->Release();
+            }
+        }
+        else {
+            return false; // 任务注册触发器初始化失败
+        }
+        break;
+    }
     case TASK_TRIGGER_BOOT:
         // 设置启动触发器的参数
         // (根据需要设置启动参数)
+        // 设置启动触发器
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IBootTrigger, (void**)&m_IBootTrigger))) {
+            // 指示从启动系统到启动任务之间的时间
+            if(plantrigers.m_TriggerParams.canConvert<Task_Boot_Params>())
+            {
+                Task_Boot_Params params = plantrigers.m_TriggerParams.value<Task_Boot_Params>();
+                m_IBootTrigger->put_Delay(SysAllocString(params.Dalay.toStdWString().c_str()));
+
+
+                m_IBootTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IBootTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IBootTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_IBootTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IBootTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_IBootTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_IBootTrigger->Release();
+            }
+        } else {
+            return false;
+        }
         break;
 
     case TASK_TRIGGER_LOGON:
         // 设置登录触发器的参数
         // (根据需要设置登录参数)
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_ILogonTrigger, (void**)&m_ILogonTrigger)))
+        {
+            if(plantrigers.m_TriggerParams.canConvert<Task_Logon_Params>())
+            {
+                Task_Logon_Params params = plantrigers.m_TriggerParams.value<Task_Logon_Params>();
+
+                m_ILogonTrigger->put_UserId(SysAllocString(params.UserId.toStdWString().c_str()));
+                m_ILogonTrigger->put_Delay(SysAllocString(params.Delay.toStdWString().c_str()));
+
+
+                m_ILogonTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_ILogonTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_ILogonTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_ILogonTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_ILogonTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_ILogonTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_ILogonTrigger->Release();
+            }
+        } else {
+            return false;
+        }
+        break;
+    case TASK_TRIGGER_SESSION_STATE_CHANGE:
+        // 设置会话状态变化时触发的任务
+        if (SUCCEEDED(m_pTrigger->QueryInterface(IID_ISessionStateChangeTrigger, (void**)&m_ISessionStateChangeTrigger))) {
+            // 设置会话状态变化触发条件
+            if(plantrigers.m_TriggerParams.canConvert<TASK_TRIGGER_SESSION_Params>())
+            {
+                TASK_TRIGGER_SESSION_Params params = plantrigers.m_TriggerParams.value<TASK_TRIGGER_SESSION_Params>();
+
+                // 获取或设置终端服务器会话的用户
+                m_ISessionStateChangeTrigger->put_UserId(SysAllocString(params.UserId.toStdWString().c_str()));//用户
+                // 指示检测到终端服务器绘画状态改变后启动任务之前发生延迟的时间 格式为:PnYnMnDTnHnMnS
+                m_ISessionStateChangeTrigger->put_Delay(SysAllocString(params.Delay.toStdWString().c_str()));
+                // 获取或设置奖触发任务启动的终端服务器会话更改的类型
+                m_ISessionStateChangeTrigger->put_StateChange(params.StateChange);// 登录时触发
+
+
+                m_ISessionStateChangeTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_ISessionStateChangeTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_ISessionStateChangeTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                m_ISessionStateChangeTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_ISessionStateChangeTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                // TODO:配置 put_ValueQueries
+                // m_ISessionStateChangeTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
+                m_ISessionStateChangeTrigger->Release();
+            }
+        }
+        else {
+            return false; // 会话状态变化触发器初始化失败
+        }
         break;
 
         // 添加其他触发器类型的处理

@@ -89,6 +89,41 @@ taskscheduler.Create_Plan_Task();
 
 ![默认设置配置](./assets/image-20241104115840976.png)
 
+# 触发器详情
+
+> 
+
+```cpp
+typedef enum _TASK_TRIGGER_TYPE2 {
+  TASK_TRIGGER_EVENT = 0, // 在发生特定事件时触发任务，详情配置: IEventTrigger
+  TASK_TRIGGER_TIME = 1, // 在一天中的特定时间触发任务，详情配置: ITimeTrigger
+  TASK_TRIGGER_DAILY = 2,// 按每日计划触发任务  IDailyTrigger
+  TASK_TRIGGER_WEEKLY = 3,// 按每周计划触发任务  IWeeklyTrigger
+  TASK_TRIGGER_MONTHLY = 4, // 按每月计划触发任务 IMonthlyTrigger
+  TASK_TRIGGER_MONTHLYDOW = 5,// 按每月的星期几计划触发任务 IMonthlyDOWTrigger
+  TASK_TRIGGER_IDLE = 6,// 当计算机进入空闲状态时触发任务  IIdleTrigger
+  TASK_TRIGGER_REGISTRATION = 7,// 在注册任务时触发任务  IRegistrationTrigger
+  TASK_TRIGGER_BOOT = 8,// 在计算机启动时触发任务 IBootTrigger
+  TASK_TRIGGER_LOGON = 9,// 在特定用户登录时触发任务 ILogonTrigger
+  TASK_TRIGGER_SESSION_STATE_CHANGE = 11,// 在特定用户回话状态更改时触发任务ISessionStateChangeTrigger
+  TASK_TRIGGER_CUSTOM_TRIGGER_01 = 12 
+} TASK_TRIGGER_TYPE2;
+```
+
+## 星期参数
+
+![星期参数](./assets/image-20241105114214943.png)
+
+![月份参数配置](./assets/image-20241105114640466.png)
+
+## IMonthlyTrigger
+
+![image-20241105133316422](./assets/image-20241105133316422.png)
+
+![image-20241105133454935](./assets/image-20241105133454935.png)
+
+> [IMonthlyTrigger：:p ut_DaysOfMonth (taskschd.h) - Win32 apps | Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/win32/api/taskschd/nf-taskschd-imonthlytrigger-put_daysofmonth)
+
 # 参考资料
 
 > [`taskschd]`(https://learn.microsoft.com/zh-cn/windows/win32/api/_taskschd/)

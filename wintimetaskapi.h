@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <taskschd.h>
 #include <comdef.h>
+#include <wincred.h>
 
 enum class TaskRunningRule {
     Do_Not_Start_New_Instance, // 请勿启动新实例
@@ -51,13 +52,104 @@ struct PlanSettings {
     QString m_Restart_Frequency; // 重启程序频率（单位：分钟）
 };
 
+// 定义IRepetitionPattern 接口任务运行的频率
+struct IRepetitionPattern_Struct
+{
+    QString Duration;  //设置重复模式的时长
+    QString Interval;  // 设置每次重启任务之间的时间量
+    VARIANT_BOOL StopAtDurationEnd; //任务运行实例是否在重复模式持续时间结束时停止
+};
+// 定义编辑触发器的全局参数
+struct IDD_ITrigger_Struct {
+    VARIANT_BOOL ITriggerEnabled; //是否启用触发器
+    QString EndBoundary;          // 停用触发器的日期和时间(在停用任务后无法启动任务)
+    QString TimeLimit;           // 设置允许触发器启动的任务运行的最长时间
+    QString ID;                   // 设置触发器的标识符
+    QString StartBoundary;        // 设置激活触发器的日期和时间.
+    struct IRepetitionPattern_Struct *m_IRepetitionpatter;//
 
+};
 // 创建计划触发器
 // TODO:完善触发器的其它参数
+// 定义不同触发器的参数结构体
+struct DailyTriggerParams {
+    int DayInterval;
+    QString RandomDelay;
+};
+
+struct WeeklyTriggerParams {
+    int dayOfWeek;
+    int WeeksInterval;
+    QString RandomDelay;
+};
+struct MonthlyTriggerParams {
+    int MonthsOfYear;
+    int DaysOfMonth;
+    QString RandomDelay;
+    VARIANT_BOOL RunOnLastDayOfMonth;
+};
+struct MONTHLYDOWTriggerParams {
+    int DaysOfWeek;
+    int WeeksOfMonth;
+    int MonthsOfYear;
+    QString RandomDelay;
+    VARIANT_BOOL RunOnLastWeekOfMonth;
+};
+struct TASK_TRIGGER_SESSION_Params{
+    QString UserId;
+    QString Delay;
+    TASK_SESSION_STATE_CHANGE_TYPE StateChange;
+
+};
+struct Task_Logon_Params{
+    QString UserId;
+    QString Delay;
+};
+struct Task_Boot_Params{
+    QString Dalay;
+};
+struct Task_Registration_Param{
+    QString Dalay;
+};
+
+struct TASK_TRIGGER_IDLE_param{
+
+};
+struct TASK_TRIGGER_TIME_param{
+    QString RandomDelay;
+};
+struct TASK_TRIGGER_EVENT_Param{
+    QString Delay;
+    QString Subscription;
+};
+
+
+// 注册自定义类型到 QVariant
+// Q_DECLARE_METATYPE 宏会将这些自定义类型注册到Qt的元对象系统中
+Q_DECLARE_METATYPE(DailyTriggerParams)
+Q_DECLARE_METATYPE(WeeklyTriggerParams)
+
+Q_DECLARE_METATYPE(MonthlyTriggerParams)
+Q_DECLARE_METATYPE(MONTHLYDOWTriggerParams)
+Q_DECLARE_METATYPE(TASK_TRIGGER_SESSION_Params)
+Q_DECLARE_METATYPE(Task_Logon_Params)
+Q_DECLARE_METATYPE(Task_Boot_Params)
+Q_DECLARE_METATYPE(Task_Registration_Param)
+Q_DECLARE_METATYPE(TASK_TRIGGER_IDLE_param)
+Q_DECLARE_METATYPE(TASK_TRIGGER_TIME_param)
+Q_DECLARE_METATYPE(TASK_TRIGGER_EVENT_Param)
+
 struct PlanTriggers
 {
     TASK_TRIGGER_TYPE2 m_TaskTriggerType; //什么时候触发，触发类型
+    struct IDD_ITrigger_Struct *m_ITrigger;  //定义编辑触发器的全局参数
+    QVariant  m_TriggerParams;  // 使用variant存储不同类型的触发器参数
+
 };
+
+
+
+
 // 创建 计划 寄存器参数
 struct PlanRegister
 {
@@ -117,10 +209,22 @@ private:
     IAction* m_pAction = NULL;
     ITriggerCollection* m_pTriggerCollection = NULL;
     ITrigger* m_pTrigger = NULL;
-    ITimeTrigger* m_pTimeTrigger = NULL;
+
     ITaskSettings* m_pSettings = NULL; //设置任务的设置
     IIdleSettings *m_IIdlesettings = nullptr;  //指定任务计划程序在
 
+    // 设置一些触发器配置
+    ITimeTrigger* m_pTimeTrigger = NULL; // 在一天中的特定时间触发任务
+    IEventTrigger *m_pEventTrigger = NULL;
+    IDailyTrigger *m_IDailyTrigger = nullptr; // 按每日计划触发任务。
+    IWeeklyTrigger *m_pWeeklyTrigger = nullptr;
+    IMonthlyTrigger *m_IMonthlyTrigger = nullptr;
+    IMonthlyDOWTrigger *m_IMonthlyDOWTrigger = nullptr;
+    IIdleTrigger *m_IIdleTrigger = nullptr;   //计算机进入空闲状态时启动任务的触发器
+    IRegistrationTrigger *m_IRegistrationTrigger = nullptr;
+    IBootTrigger *m_IBootTrigger = nullptr;
+    ILogonTrigger *m_ILogonTrigger = nullptr;
+    ISessionStateChangeTrigger *m_ISessionStateChangeTrigger = nullptr;
     // 根据用户需求变更的自定义参数
 private:
 

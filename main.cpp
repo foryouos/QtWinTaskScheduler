@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 
     // 设置触发条件
     taskscheduler.setTaskTriggerType(TASK_TRIGGER_TYPE2::TASK_TRIGGER_LOGON);
+    taskscheduler.
 
     // 执行创建任务
     taskscheduler.Create_Plan_Task();
