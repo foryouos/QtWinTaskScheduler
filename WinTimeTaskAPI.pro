@@ -10,18 +10,18 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    taskscheduler.cpp \
-    wintimetaskapi.cpp
+    $$PWD/taskscheduler.cpp \
+    $$PWD/wintimetaskapi.cpp
 
 HEADERS += \
-    TaskScheduleHead.h \
-    taskscheduler.h \
-    wintimetaskapi.h
+    $$PWD/TaskScheduleHead.h \
+    $$PWD/taskscheduler.h \
+    $$PWD/wintimetaskapi.h
 
 # Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
+# qnx: target.path = /tmp/$${TARGET}/bin
+# else: unix:!android: target.path = /opt/$${TARGET}/bin
+# !isEmpty(target.path): INSTALLS += target
 
 
 # 添加要链接的库
