@@ -9,6 +9,8 @@
 #include <taskschd.h>
 #include <comdef.h>
 #include <wincred.h>
+#include "TaskScheduleHead.h"
+
 
 enum class TaskRunningRule {
     Do_Not_Start_New_Instance, // 请勿启动新实例
@@ -78,20 +80,20 @@ struct DailyTriggerParams {
 };
 
 struct WeeklyTriggerParams {
-    int dayOfWeek;
+    DaysOfWeek dayOfWeek;
     int WeeksInterval;
     QString RandomDelay;
 };
 struct MonthlyTriggerParams {
-    int MonthsOfYear;
-    int DaysOfMonth;
+    MonthsOfYear MonthsOfYear;
+    DaysOfMonth DaysOfMonth;
     QString RandomDelay;
     VARIANT_BOOL RunOnLastDayOfMonth;
 };
 struct MONTHLYDOWTriggerParams {
-    int DaysOfWeek;
-    int WeeksOfMonth;
-    int MonthsOfYear;
+    DaysOfWeek DaysOfWeek;
+    DaysOfMonth WeeksOfMonth;
+    MonthsOfYear MonthsOfYear;
     QString RandomDelay;
     VARIANT_BOOL RunOnLastWeekOfMonth;
 };
@@ -188,6 +190,8 @@ public slots:
     bool Create_Plan_Actions(QList<TaskOperation> m_globalTaskOperations);
     // 7,设置触发器
     bool Create_Plan_Triggers(const PlanTriggers& plantrigers);
+
+    bool Create_Plan_Triggers(QList<PlanTriggers> m_plantriggers_list);
 
     // 8,注册任务 最后一步
     bool Create_Plan_Definition(const PlanDefinition& plandefine);

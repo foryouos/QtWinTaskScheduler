@@ -321,7 +321,23 @@ bool WinTimeTaskAPI::Create_Plan_Actions(QList<TaskOperation> m_globalTaskOperat
     }
     return false;
 }
+bool WinTimeTaskAPI::Create_Plan_Triggers(QList<PlanTriggers> m_plantriggers_list)
+{
+    for(int i = 0;i<m_plantriggers_list.size();i++)
+    {
+        if(this->Create_Plan_Triggers(m_plantriggers_list.at(i)))
+        {
 
+        }
+        else
+        {
+            // 创建触发器失败
+            qDebug()<<"创建触发器失败";
+            return false;
+        }
+    }
+    return true;
+}
 bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
 {
     // 设置触发器
@@ -389,21 +405,23 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
         break;
 
     case TASK_TRIGGER_DAILY:
+        qDebug()<<"TASK_TRIGGER_DAILY";
         // 设置每日触发器
         if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IDailyTrigger, (void**)&m_IDailyTrigger))) {
 
             if(plantrigers.m_TriggerParams.canConvert<DailyTriggerParams>())
             {
                 DailyTriggerParams params = plantrigers.m_TriggerParams.value<DailyTriggerParams>();
-
-                m_IDailyTrigger->put_DaysInterval(params.DayInterval); //设置计划中天数之间的间隔  1将生成每日计划，2 每隔一天的计划
-                m_IDailyTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str())); //设置随机添加到触发器的开始时间的延迟时间
-
-                m_IDailyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
-                m_IDailyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
-                m_IDailyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_IDailyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
-                m_IDailyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                qDebug()<<params.DayInterval<<params.RandomDelay;
+                // m_IDailyTrigger->put_DaysInterval(params.DayInterval); //设置计划中天数之间的间隔  1将生成每日计划，2 每隔一天的计划
+                // m_IDailyTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str())); //设置随机添加到触发器的开始时间的延迟时间
+                m_IDailyTrigger->put_DaysInterval(1); //设置计划中天数之间的间隔  1将生成每日计划，2 每隔一天的计划
+                m_IDailyTrigger->put_RandomDelay(SysAllocString(L"P2DT5S")); //设置随机添加到触发器的开始时间的延迟时间
+                //m_IDailyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                // m_IDailyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                // m_IDailyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                // m_IDailyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                // m_IDailyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_pEventTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
                 m_IDailyTrigger->Release();
@@ -643,6 +661,8 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
 
     return true;
 }
+
+
 
 bool WinTimeTaskAPI::Create_Plan_Definition(const PlanDefinition& plandefine)
 {

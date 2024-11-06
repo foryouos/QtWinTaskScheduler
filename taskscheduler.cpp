@@ -74,10 +74,6 @@ TaskScheduler::TaskScheduler()
     m_taskoperation.executable = "";
     m_taskoperation.parameters = "";
     m_taskoperation.startAtDirector = "";
-    // 初始化 触发器 PlanTriggers
-    m_plantriggers.m_TaskTriggerType = TASK_TRIGGER_TYPE2::TASK_TRIGGER_BOOT;  // 触发器 当系统启动时
-
-    // 测试计划任务程序 API
 
 
     wintimetaskapi = new WinTimeTaskAPI;
@@ -139,7 +135,7 @@ bool TaskScheduler::Create_Plan_Task()
     }
 
     // 7. 设置触发器
-    if (!wintimetaskapi->Create_Plan_Triggers(m_plantriggers)) {
+    if (!wintimetaskapi->Create_Plan_Triggers(m_plantriggers_list)) {
         qDebug() << "Failed to create plan triggers.";
         return false;
     }
@@ -168,6 +164,15 @@ void TaskScheduler::AddTaskOperation(const QString &executable, const QString &p
     m_globalTaskOperations.append(operation);
 }
 
+void TaskScheduler::AddTaskTrigger(TASK_TRIGGER_TYPE2 TrigetType, QVariant TypeParam, IDD_ITrigger_Struct Global_Triger)
+{
+    // 设置触发器结构体
+    PlanTriggers plantrigger;
+    plantrigger.m_TaskTriggerType = TrigetType;
+    plantrigger.m_TriggerParams = QVariant::fromValue(TypeParam);
+    plantrigger.m_ITrigger =&Global_Triger;
+    m_plantriggers_list.append(plantrigger);
+}
 // Getter 和 Setter 实现
 QString TaskScheduler::getTaskName() const {
     return m_plandefinition.m_Task_Name;
@@ -225,13 +230,7 @@ void TaskScheduler::setHideUIDisplay(VARIANT_BOOL hide) {
     m_plansettings.Hide_UI_Display = hide;
 }
 
-TASK_TRIGGER_TYPE2 TaskScheduler::getTaskTriggerType() const {
-    return m_plantriggers.m_TaskTriggerType;
-}
 
-void TaskScheduler::setTaskTriggerType(TASK_TRIGGER_TYPE2 triggerType) {
-    m_plantriggers.m_TaskTriggerType = triggerType;
-}
 
 // Getter 和 Setter 实现
 QList<TaskOperation> TaskScheduler::getGlobalTaskOperations() const {

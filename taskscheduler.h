@@ -37,9 +37,6 @@ public:
     VARIANT_BOOL isHideUIDisplay() const;
     void setHideUIDisplay(VARIANT_BOOL hide);
 
-    TASK_TRIGGER_TYPE2 getTaskTriggerType() const;
-    void setTaskTriggerType(TASK_TRIGGER_TYPE2 triggerType);
-
     // 全局任务操作
     QList<TaskOperation> getGlobalTaskOperations() const;
     void setGlobalTaskOperations(const QList<TaskOperation>& operations);
@@ -82,13 +79,19 @@ public:
     // 删除任务的设置
     QString getDeleteTaskAfterNoSchedule() const;
     void setDeleteTaskAfterNoSchedule(const QString& setting);
+
+
+    // 设置触发器参数
+
+
     // 创建任务计划程序函数
 public slots:
     // 简单API 就是 创建名称 脚本 参数 ---简单的计划任务
     bool Create_Plan_Task();
     // 想全局任务计划中 任务名称   添加任务
     void AddTaskOperation(const QString& executable, const QString& parameters, const QString& startAt);
-    // 添加触发条件
+    // 添加触发条件 1,触发器类型，2，此类型的个性化参数，3,触发器全局参数
+    void AddTaskTrigger(TASK_TRIGGER_TYPE2 TrigetType,QVariant TypeParam,IDD_ITrigger_Struct Global_Triger);
 
 
 private:
@@ -101,7 +104,7 @@ private:
     PlanRegister m_planregister;
     PlanDefinition m_plandefinition;
     // 添加触发条件，触发条件 可能有多个
-    PlanTriggers m_plantriggers;
+    // PlanTriggers m_plantriggers;
     QList<PlanTriggers> m_plantriggers_list;
     // 计划任务列表
     QList<TaskOperation> m_globalTaskOperations;

@@ -14,6 +14,7 @@ SOURCES += \
     wintimetaskapi.cpp
 
 HEADERS += \
+    TaskScheduleHead.h \
     taskscheduler.h \
     wintimetaskapi.h
 

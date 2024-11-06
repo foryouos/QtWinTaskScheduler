@@ -41,8 +41,30 @@ int main(int argc, char *argv[])
     taskscheduler.AddTaskOperation("C://qt.exe","","");
 
     // 设置触发条件
-    taskscheduler.setTaskTriggerType(TASK_TRIGGER_TYPE2::TASK_TRIGGER_LOGON);
-    taskscheduler.
+
+    IDD_ITrigger_Struct itrigger;
+    itrigger.ITriggerEnabled = VARIANT_TRUE; //启用状态
+    itrigger.TimeLimit = "P2DT5S"; //任务运行时间超过此值停止运行
+    // 时间格式 YYYY-MM-DDTHH：MM：SS (+-) HH
+    itrigger.StartBoundary = "2025-01-01T00:01:00Z";  // 开始时间，Z 表示 UTC 跨时区同步
+    itrigger.EndBoundary = "2025-01-01T00:01:00Z";    // 结束时间，Z 表示 UTC
+    itrigger.ID = "GlobalTrigger"; //设置触发器的标识符。
+    //itrigger.TimeLimit("");
+#if 0
+    // 设置系统启动 触发器的Demo
+    Task_Boot_Params    bootparams;
+    bootparams.Dalay = "PT5M";  // 延迟任务时间
+#else
+    //设置触发条件的个性参数
+    DailyTriggerParams DailyParams;
+    DailyParams.DayInterval = 5;
+    DailyParams.RandomDelay ="P2DT5S";
+
+#endif
+
+    // 想触发器中添加触发数据条件
+    // 1,触发器类型,2,触发器个性化参数，3,触发器全局参数
+    taskscheduler.AddTaskTrigger(TASK_TRIGGER_TYPE2::TASK_TRIGGER_DAILY,QVariant::fromValue(DailyParams),itrigger);
 
     // 执行创建任务
     taskscheduler.Create_Plan_Task();
