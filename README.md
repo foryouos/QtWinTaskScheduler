@@ -9,19 +9,19 @@
 > * [x] 完成 添加操作 接口测试
 > * [x] 完成与触发器一起判断是否应运行该任务的条件
 > * [x] 完成影响任务行为的其他设置
-> * [ ] 完成 影响任务钟和触发器相关的配置兼容性
-> * [ ] 完成触发器配置
-> * [ ] 完成API 调用实例
+> * [x] 完成 影响任务钟和触发器相关的配置兼容性
+> * [x] 完成触发器配置
+> * [x] 完成API 调用实例
 
 
 
 # 调用接口
 
-
-
 ```cpp
 #include "taskscheduler.h"
 
+
+// 测试WinTime Task API 接口
 TaskScheduler taskscheduler;
 taskscheduler.setTaskName("Test API");               // 设置账户名称
 taskscheduler.setTaskAccount("NT AUTHORITY\\SYSTE"); //设置用户登录的账户
@@ -41,9 +41,9 @@ taskscheduler.SetNetWordCondition(VARIANT_FALSE);
 // 4，控制其它设置
 taskscheduler.setRunTasksOnDemand(VARIANT_TRUE);
 taskscheduler.setImmediateStartAfterScheduledTime(VARIANT_TRUE);
-taskscheduler.setRestartFrequency("");
+taskscheduler.setRestartFrequency("PT5M");
 taskscheduler.setMaxRestartAttempts(3);
-taskscheduler.setTaskTimeoutHours("");
+taskscheduler.setTaskTimeoutHours("P5D");
 taskscheduler.setForceStopOnRequest(VARIANT_TRUE);
 taskscheduler.setDeleteTaskAfterNoSchedule("");
 
@@ -51,9 +51,43 @@ taskscheduler.setDeleteTaskAfterNoSchedule("");
 // 添加执行任务
 taskscheduler.AddTaskOperation("C://qt.exe","","");
 
-// 设置触发条件
-taskscheduler.setTaskTriggerType(TASK_TRIGGER_TYPE2::TASK_TRIGGER_LOGON);
+// **************  设置 触发条件 全局条件
 
+IDD_ITrigger_Struct itrigger;
+itrigger.ITriggerEnabled = VARIANT_TRUE; //启用状态
+itrigger.TimeLimit = "P2DT5S"; //任务运行时间超过此值停止运行
+// 时间格式 YYYY-MM-DDTHH：MM：SS (+-) HH
+itrigger.StartBoundary = "2025-01-01T00:01:00Z";  // 开始时间，Z 表示 UTC 跨时区同步
+itrigger.EndBoundary = "2025-01-01T00:01:00Z";    // 结束时间，Z 表示 UTC
+itrigger.ID = "GlobalTrigger"; //设置触发器的标识符。
+//itrigger.TimeLimit("");
+
+// *******        设置 系统启动TASK_TRIGGER_BOOT  触发器的
+Task_Boot_Params    bootparams;
+bootparams.Dalay = "PT5M";  // 延迟任务时间
+
+
+//设置  TASK_TRIGGER_DAILY 的c触发条件
+DailyTriggerParams DailyParams;
+DailyParams.DayInterval = 1;
+DailyParams.RandomDelay ="P2DT5S";
+
+// 设置用户登录的触发条件
+Task_Logon_Params Logon_params;
+Logon_params.Delay="PT5M"; // ，该值指示用户登录和任务启动之间的时间。
+Logon_params.UserId=""; // 设置用户的标识符。
+
+// 每月计划
+MonthlyTriggerParams month_params;
+month_params.MonthsOfYear = MonthsOfYear::September;
+month_params.DaysOfMonth = DaysOfMonth::Day18;
+
+// 想触发器中添加触发数据条件
+// 1,触发器类型,2,触发器个性化参数，3,触发器全局参数
+taskscheduler.AddTaskTrigger(TASK_TRIGGER_TYPE2::TASK_TRIGGER_BOOT,QVariant::fromValue(bootparams),itrigger);
+taskscheduler.AddTaskTrigger(TASK_TRIGGER_TYPE2::TASK_TRIGGER_DAILY,QVariant::fromValue(DailyParams),itrigger);
+taskscheduler.AddTaskTrigger(TASK_TRIGGER_TYPE2::TASK_TRIGGER_LOGON,QVariant::fromValue(Logon_params),itrigger);
+taskscheduler.AddTaskTrigger(TASK_TRIGGER_TYPE2::TASK_TRIGGER_MONTHLY,QVariant::fromValue(month_params),itrigger);
 // 执行创建任务
 taskscheduler.Create_Plan_Task();
 ```
@@ -91,7 +125,7 @@ taskscheduler.Create_Plan_Task();
 
 # 触发器详情
 
-> 
+> `触发器`不同情况下`参数`
 
 ```cpp
 typedef enum _TASK_TRIGGER_TYPE2 {
@@ -112,22 +146,12 @@ typedef enum _TASK_TRIGGER_TYPE2 {
 
 ## 星期参数
 
-![星期参数](./assets/image-20241105114214943.png)
-
-![月份参数配置](./assets/image-20241105114640466.png)
-
-## IMonthlyTrigger
-
-![image-20241105133316422](./assets/image-20241105133316422.png)
-
-![image-20241105133454935](./assets/image-20241105133454935.png)
-
-> [IMonthlyTrigger：:p ut_DaysOfMonth (taskschd.h) - Win32 apps | Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/win32/api/taskschd/nf-taskschd-imonthlytrigger-put_daysofmonth)
+> [`IMonthlyTrigger：:p ut_DaysOfMonth (taskschd.h) - Win32 apps | Microsoft Learn`](https://learn.microsoft.com/zh-cn/windows/win32/api/taskschd/nf-taskschd-imonthlytrigger-put_daysofmonth)
 
 # 参考资料
 
 > [`taskschd]`(https://learn.microsoft.com/zh-cn/windows/win32/api/_taskschd/)
 >
-> * 联系方式:foryouos@qq.com
+> * `联系方式` : foryouos@qq.com
 >
-> * 微信公众号: `瓶子的跋涉 `
+> * `微信公众号`: `瓶子的跋涉 `

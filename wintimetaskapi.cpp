@@ -92,7 +92,7 @@ bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
     VARIANT_BOOL m_Hide_UI_Display = settings.Hide_UI_Display;
     VARIANT_BOOL m_Awaken_Alway_Run = settings.Awaken_Alway_Run;
     VARIANT_BOOL m_RunOnlyIfNetworkAvailable = settings.RunOnlyIfNetworkAvailable;
-    VARIANT_BOOL m_Force_Stop_On_Request = settings.m_Force_Stop_On_Request;
+    // VARIANT_BOOL m_Force_Stop_On_Request = settings.m_Force_Stop_On_Request;
     int m_Max_Restart_Attempts = settings.Max_Restart_Attempts;
     QString m_Task_Timeout_Hours = settings.m_Task_Timeout_Hours;
     QString m_Delete_Task_After_No_Schedule = settings.m_Delete_Task_After_No_Schedule;
@@ -168,7 +168,6 @@ bool WinTimeTaskAPI::Create_Plan_Settings(const PlanSettings& settings)
         {
             this->Deal_Fail_Hr(m_hr);
         }
-        // TODO:设置最大运行时间，例如 1 小时
         // SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Timeout_Hours.utf16()))
         //HRESULT result =  m_pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT5M")); // 允许手动启动 。 值为 PT0S 将使任务可以无限期运行。
         HRESULT result =  m_pSettings->put_ExecutionTimeLimit(SysAllocString(reinterpret_cast<const wchar_t*>(m_Task_Timeout_Hours.utf16())));
@@ -323,6 +322,7 @@ bool WinTimeTaskAPI::Create_Plan_Actions(QList<TaskOperation> m_globalTaskOperat
 }
 bool WinTimeTaskAPI::Create_Plan_Triggers(QList<PlanTriggers> m_plantriggers_list)
 {
+    qDebug()<<"触发器的数量:"<<m_plantriggers_list.size();
     for(int i = 0;i<m_plantriggers_list.size();i++)
     {
         if(this->Create_Plan_Triggers(m_plantriggers_list.at(i)))
@@ -341,8 +341,12 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(QList<PlanTriggers> m_plantriggers_lis
 bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
 {
     // 设置触发器
-    m_hr = m_pTask->get_Triggers(&m_pTriggerCollection);
-    if (FAILED(m_hr)) return false;
+    if(m_pTriggerCollection == nullptr)
+    {
+        m_hr = m_pTask->get_Triggers(&m_pTriggerCollection);
+        if (FAILED(m_hr)) return false;
+    }
+
 
     // 创建触发器
     m_hr = m_pTriggerCollection->Create(plantrigers.m_TaskTriggerType, &m_pTrigger);
@@ -368,7 +372,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_pEventTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_pEventTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_pEventTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_pEventTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_pEventTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_pEventTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_pEventTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -393,7 +397,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_pTimeTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_pTimeTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_pTimeTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_pTimeTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_pTimeTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_pTimeTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_pTimeTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -417,11 +421,11 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 // m_IDailyTrigger->put_RandomDelay(SysAllocString(params.RandomDelay.toStdWString().c_str())); //设置随机添加到触发器的开始时间的延迟时间
                 m_IDailyTrigger->put_DaysInterval(1); //设置计划中天数之间的间隔  1将生成每日计划，2 每隔一天的计划
                 m_IDailyTrigger->put_RandomDelay(SysAllocString(L"P2DT5S")); //设置随机添加到触发器的开始时间的延迟时间
-                //m_IDailyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
-                // m_IDailyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
-                // m_IDailyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                // m_IDailyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
-                // m_IDailyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
+                m_IDailyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
+                m_IDailyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
+                m_IDailyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
+                //m_IDailyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                m_IDailyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_pEventTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
                 m_IDailyTrigger->Release();
@@ -447,7 +451,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_pWeeklyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_pWeeklyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_pWeeklyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_pWeeklyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_pWeeklyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_pWeeklyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_pWeeklyTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -474,7 +478,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_IMonthlyTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_IMonthlyTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_IMonthlyTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_IMonthlyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_IMonthlyTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_IMonthlyTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_IMonthlyTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -504,7 +508,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_IMonthlyDOWTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_IMonthlyDOWTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_IMonthlyDOWTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_IMonthlyDOWTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_IMonthlyDOWTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_IMonthlyDOWTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_IMonthlyDOWTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -530,7 +534,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_IIdleTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_IIdleTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_IIdleTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_IIdleTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_IIdleTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_IIdleTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_IIdleTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -555,7 +559,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_IRegistrationTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_IRegistrationTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_IRegistrationTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_IRegistrationTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_IRegistrationTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_IRegistrationTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_IRegistrationTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -568,9 +572,9 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
         break;
     }
     case TASK_TRIGGER_BOOT:
-        // 设置启动触发器的参数
-        // (根据需要设置启动参数)
+        // 设置启动触发器的参数 (根据需要设置启动参数)
         // 设置启动触发器
+        qDebug()<<":TASK_TRIGGER_BOOT";
         if (SUCCEEDED(m_pTrigger->QueryInterface(IID_IBootTrigger, (void**)&m_IBootTrigger))) {
             // 指示从启动系统到启动任务之间的时间
             if(plantrigers.m_TriggerParams.canConvert<Task_Boot_Params>())
@@ -582,7 +586,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_IBootTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_IBootTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_IBootTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_IBootTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_IBootTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_IBootTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_IBootTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -609,7 +613,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_ILogonTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_ILogonTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_ILogonTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_ILogonTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_ILogonTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_ILogonTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_ILogonTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -638,7 +642,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
                 m_ISessionStateChangeTrigger->put_Enabled(plantrigers.m_ITrigger->ITriggerEnabled);
                 m_ISessionStateChangeTrigger->put_EndBoundary(SysAllocString(plantrigers.m_ITrigger->EndBoundary.toStdWString().c_str()));
                 m_ISessionStateChangeTrigger->put_ExecutionTimeLimit(SysAllocString(plantrigers.m_ITrigger->TimeLimit.toStdWString().c_str()));
-                m_ISessionStateChangeTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
+                //m_ISessionStateChangeTrigger->put_Id(SysAllocString(plantrigers.m_ITrigger->ID.toStdWString().c_str()));
                 m_ISessionStateChangeTrigger->put_StartBoundary(SysAllocString(plantrigers.m_ITrigger->StartBoundary.toStdWString().c_str()));
                 // TODO:配置 put_ValueQueries
                 // m_ISessionStateChangeTrigger->put_ValueQueries(plantrigers.m_ITrigger->m_IRepetitionpatter);
@@ -655,9 +659,7 @@ bool WinTimeTaskAPI::Create_Plan_Triggers(const PlanTriggers& plantrigers)
         return false; // 不支持的触发器类型
     }
 
-    // 释放触发器集合
-    m_pTrigger->Release();
-    m_pTriggerCollection->Release();
+
 
     return true;
 }
@@ -698,6 +700,9 @@ bool WinTimeTaskAPI::Create_Plan_Definition(const PlanDefinition& plandefine)
 
 bool WinTimeTaskAPI::Release_WinTask()
 {
+    // 释放触发器集合
+    m_pTrigger->Release();
+    m_pTriggerCollection->Release();
     // 释放资源
     m_pTask->Release();
     m_pService->Release();

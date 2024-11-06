@@ -104,14 +104,14 @@ struct TASK_TRIGGER_SESSION_Params{
 
 };
 struct Task_Logon_Params{
-    QString UserId;
-    QString Delay;
+    QString UserId;   // 设置用户的标识符。
+    QString Delay;  // 该值指示用户登录和任务启动之间的时间。
 };
 struct Task_Boot_Params{
-    QString Dalay;
+    QString Dalay;  // 该值指示用户登录和任务启动之间的时间。
 };
 struct Task_Registration_Param{
-    QString Dalay;
+    QString Dalay;  // 该值指示用户登录和任务启动之间的时间。
 };
 
 struct TASK_TRIGGER_IDLE_param{

@@ -79,10 +79,6 @@ TaskScheduler::TaskScheduler()
     wintimetaskapi = new WinTimeTaskAPI;
 
 
-    // this->AddTaskOperation("C://qt.exe","","");
-    // // TODO:创建计划任务测试
-    // this->Create_Plan_Task_API();
-
 
 }
 // 任务计划的析构函数
